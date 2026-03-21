@@ -219,3 +219,7 @@ __marimo__/
 .DS_Store
 .idea
 *.pt
+scratch
+ppts
+models
+data
