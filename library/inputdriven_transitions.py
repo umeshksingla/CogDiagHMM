@@ -72,13 +72,12 @@ class InputDrivenHMMTransitions(HMMTransitions):
             key: Optional[Array] = None,
             method: str = "prior", **kwargs
     ) -> Tuple[ParamsInputDrivenHMMTransitions, ParamsInputDrivenHMMTransitions]:
-        if method == "prior":
-            # Initialize with small random weights (near zero) so transitions start near uniform
-            key_w, key_b = jr.split(key)
-            weights = jr.normal(key_w, (self.num_states, self.num_states, self.input_dim)) * 0.01
-            biases = jr.normal(key_b, (self.num_states, self.num_states)) * 0.01
-        else:                                                                               # CHECK??
-            raise ValueError(f"Unknown initialization method: {method}")
+
+        # Initialize with small random weights (near zero) so transitions start near uniform
+        key_w, key_b = jr.split(key)
+        weights = jr.normal(key_w, (self.num_states, self.num_states, self.input_dim)) * 0.01
+        biases = jr.normal(key_b, (self.num_states, self.num_states)) * 0.01
+
         # Package the results into dictionaries
         params = ParamsInputDrivenHMMTransitions(weights=weights, biases=biases)
         props = ParamsInputDrivenHMMTransitions(weights=ParameterProperties(), biases=ParameterProperties())

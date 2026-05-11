@@ -27,7 +27,9 @@ class GHMM(BaseModel):
     def fit(self, emissions, inputs, true_states=None):
         print(f'--- Begin fitting {self.__class__.__name__} ---')
         key = jr.PRNGKey(self.seed)
-        init_params, props = self.hmm.initialize(key=key)
+        init_params, props = self.hmm.initialize(key=key,
+                                                 #method='kmeans', emissions=emissions
+                                                 )
         self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=None, num_iters=50)
         self.fit_success = ~np.any(np.isnan(self.learned_params.transitions.transition_matrix))
         print("\n--- HMM Training Finished ---")
@@ -121,6 +123,13 @@ class GHMM(BaseModel):
         e = time.time()
         print((e-s), 'seconds')
         return y_ahead_pred_btch_all, y_ahead_true_btch_all
+
+    def get_data_logprob(self, emissions, inputs):
+        """Evaluate the log probability of the data under the given model and model parameters"""
+        lp = np.sum([self.hmm.marginal_log_prob(self.learned_params, e, i) for e, i in zip(emissions, inputs)])
+        lp_prior = self.hmm.log_prior(self.learned_params)
+        lp += lp_prior
+        return lp.item()
 
     def postfit(self, state, inputs):
 

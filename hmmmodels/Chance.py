@@ -38,13 +38,13 @@ class Chance(BaseModel):
         print(cov, cov.shape)
         self.model = tfd.MultivariateNormalFullCovariance(loc=mu, covariance_matrix=cov)
         self.learned_params = {'mu': mu, 'cov': cov}
+        self.learned_lps = [self.model.log_prob(y).sum()]
         self.fit_success = (~np.any(np.isnan([self.learned_params['mu']]))) | (~np.any(np.isnan([self.learned_params['cov']])))
-        print("\n--- Chance Training Finished ---")
+        print("\n--- Chance Model Fitting Finished ---")
         return
 
     def predict_soft(self, emissions, inputs):
         """
-
         :param emissions: Unused
         :param inputs:
         :return:
