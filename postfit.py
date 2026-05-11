@@ -10,7 +10,7 @@ from dynamax.hidden_markov_model.inference import _condition_on
 import tensorflow_probability.substrates.jax.distributions as tfd
 from library.inputdriven_linreg_hmm import LinearRegressionHMMEmissions
 
-from io_utils import load_specific_path
+from domains.io_utils import load_specific_path
 
 # path = '/Users/usingla/research/CogDiagHMM/models/IDLRHMM_4/_20260302_133828_force'
 # path = '/Users/usingla/research/CogDiagHMM/models/LRHMM_4/_20260304_111642_indicator'

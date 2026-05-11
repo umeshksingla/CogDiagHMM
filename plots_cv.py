@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import scipy.stats
 import matplotlib as mpl
 
-from io_utils import *
+from domains.io_utils import *
 
 ###################################################
 mpl.rcParams['font.size'] = 11  # Panel labels

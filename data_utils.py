@@ -4,7 +4,7 @@ from domains.seasonstaskdata import SeasonsTaskData
 from domains.cyclicfwdtaskdata import CyclicFwdTaskData
 from domains.nbackrnndata import NBackRNNData
 from domains.cyclicfwdrnndata import CyclicFwdRNNData
-from io_utils import save_data
+from domains.io_utils import save_data
 
 
 def construct_data(task, BATCHES, STEPS, N_OBS_DIM=None):
