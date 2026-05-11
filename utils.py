@@ -33,10 +33,10 @@ def align_hungarian(hmm_decoded_seq, ground_truth_seq):
 
     # Create the mapping dictionary
     optimal_mapping = {int(hmm_labels[j]): int(true_labels[i]) for i, j in zip(true_indices, hmm_indices)}
-    # print("\nOptimal Mapping (Decoded Label -> True Label):")
-    # pprint(optimal_mapping)
-    # print('Decoded labels that found a match in true labels:', optimal_mapping.keys())
-    # print('Correspoding true labels to above decoded ones:', optimal_mapping.values())
+    print("\nOptimal Mapping (Decoded Label -> True Label):")
+    pprint(optimal_mapping)
+    print('Decoded labels that found a match in true labels:', optimal_mapping.keys())
+    print('Correspoding true labels to above decoded ones:', optimal_mapping.values())
     for _ in hmm_labels:
         if _ not in optimal_mapping:
             optimal_mapping[_] = -1
@@ -88,10 +88,3 @@ def remap_state_probs(state_probs, true_labels, optimal_mapping):
             sp_remapped[:, optimal_mapping[z]] = sp[:, z]
         state_probs_remapped.append(sp_remapped)
     return state_probs_remapped
-
-# a = np.random.randint(10, size=10000)
-# print("a", a)
-# aligned_a, cost = align_hungarian(a, a)
-# print(cost)
-# print("aligned_a", aligned_a)
-# print(np.sum(a == aligned_a))

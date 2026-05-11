@@ -24,11 +24,12 @@ def load_data(path):
     stim_seqs = data['stim_seqs']
     true_states = data['true_states']
     observations = data['observations']
+    task_config = data['task_config']
     print('inputs', inputs.shape, inputs.dtype)
     print('stim_seqs', stim_seqs.shape, stim_seqs.dtype)
     print('true_states', true_states.shape, true_states.dtype)
     print('observations', observations.shape, observations.dtype)
-    return inputs, stim_seqs, true_states, observations
+    return inputs, stim_seqs, true_states, observations, task_config
 
 
 def gen_folder_name():
@@ -42,7 +43,7 @@ def save_model_success(model, output_dir):
 
 
 def save_model_config(config, output_dir):
-    with open(os.path.join(output_dir, 'model_config.json'), 'w') as f: json.dump(config, f)
+    with open(os.path.join(output_dir, 'model_config.json'), 'w') as f: json.dump(config, f, indent=4)
     return
 
 
