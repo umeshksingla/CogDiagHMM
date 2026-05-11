@@ -5,7 +5,7 @@ from domains.basedata import BaseData
 from domains.plots import *
 from domains.utils import *
 
-from __data_utils import load_data
+from io_utils import load_rnn_data
 
 
 class CyclicFwdRNNData(BaseData):
@@ -31,7 +31,7 @@ class CyclicFwdRNNData(BaseData):
         data_dump2 = {k: v.numpy() for k, v in data_dump.items()}
         joblib.dump(data_dump2, filepath.replace('.pt', '.joblib'))
 
-        emissions, stim_seq, labels = load_data(f'/Users/usingla/research/CogDiagHMM/data/{filename}.joblib')
+        emissions, stim_seq, labels = load_rnn_data(f'/Users/usingla/research/CogDiagHMM/data/{filename}.joblib')
         emissions = emissions.astype(np.float64)
         print("loaded shapes", emissions.shape, stim_seq.shape, labels.shape)
         self.loaded_stim_seq = stim_seq
