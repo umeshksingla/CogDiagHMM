@@ -36,17 +36,17 @@ def visualize_task(state_labels, stim_seq, true_states, observations, recovered_
 
     # Inputs
     ax[0].set_title("Stimulus Sequence")
-    ax[0].plot(range(STEPS), stim_seq[:STEPS], label='Stim', linestyle='-', alpha=0.7)
+    ax[0].plot(range(STEPS), stim_seq[:STEPS], '.-', label='Stim', alpha=0.7)
     ax[0].legend(loc='upper right')
-    ax[0].set_yticks([0, 1], [0, 1])
+    # ax[0].set_yticks([0, 1], [0, 1])
     ax[0].grid(True, alpha=0.3)
 
     # Actual States
     state_labels_copy = state_labels.copy()
     ax[1].set_title("State Sequence")
-    ax[1].step(range(STEPS), true_states[:STEPS], where='mid', label='True State Seq', color='black')
+    ax[1].step(range(STEPS), true_states[:STEPS], where='post', label='True State Seq', color='black')
     if recovered_states is not None:
-        ax[1].step(range(STEPS), recovered_states[:STEPS], where='mid', label='Recovered State Seq', color='red')
+        ax[1].step(range(STEPS), recovered_states[:STEPS], where='post', label='Recovered State Seq', color='red')
     ax[1].set_yticks(np.insert(state_labels_copy, 0, -1), ['X'] + [str(_) for _ in state_labels_copy])
     ax[1].set_ylabel('State')
     ax[1].grid(True, alpha=0.3)
