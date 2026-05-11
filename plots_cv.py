@@ -1,20 +1,18 @@
-import sys
 from collections import OrderedDict
 
-import numpy as np
 import matplotlib.pyplot as plt
-import random
-import glob
-import joblib
 import scipy.stats
 import matplotlib as mpl
 
-from hmmmodels.Chance import Chance
 from io_utils import *
 
 ###################################################
 mpl.rcParams['font.size'] = 11  # Panel labels
 ###################################################
+
+
+def normalize_lp(lp, pkl):
+    return lp / pkl['observations'].size / np.log(2)
 
 
 def loadCV_Scores_by_z(path, model_prefix, num_states, score_type):
@@ -30,13 +28,14 @@ def loadCV_Scores_by_z(path, model_prefix, num_states, score_type):
             continue
         total_size = pkl['observations'].size
         if score_type == 'r2':
-            train_score = pkl['r2_w_inputs']
+            train_score = pkl['r2_w_inputs_smoothed']
         elif score_type == 'alignment_cost':
             train_score = pkl['alignment_cost']
         elif score_type == 'll':
-            chance_lp = -78578.45692964055
-            factor_bits_per_step = 1/np.log(2)
-            train_score = ((pkl['lps'][-1].item() - chance_lp) / total_size) * factor_bits_per_step
+            lp = pkl['ll']
+            # print(lp, pkl['em_lps'][-1].item())
+            # assert lp == pkl['em_lps'][-1].item()
+            train_score = normalize_lp(lp, pkl) - chance_pkl_normalized
         else:
             raise Exception(f'Unsupported score type "{score_type}".')
         train_scores.append(train_score)
@@ -57,6 +56,11 @@ def plotCV_same_model_Score(path, model_name, num_states_configs, score_type='r2
         plt.plot(s+train_jitter, hmm_train_scores, 'ko', mfc='none', markersize=ms)
         plt.errorbar(s + 0.28, np.mean(hmm_train_scores), yerr=scipy.stats.sem(hmm_train_scores), color='gray', fmt='o', capsize=0)
 
+    plt.xticks(num_states_configs, labels=num_states_configs)
+    if score_type == 'll':
+        plt.plot([0], chance_pkl_normalized, 'o-', label='Chance')
+        plt.xticks([0] + num_states_configs, labels=[0] + num_states_configs)
+
     if score_type == 'r2':
         plt.ylabel('$R^2$ score')
         plt.ylim(-0.1, 1.1)
@@ -65,7 +69,6 @@ def plotCV_same_model_Score(path, model_name, num_states_configs, score_type='r2
     elif score_type == 'alignment_cost':
         plt.ylabel('Alignment Cost')
     plt.xlabel('Number of states')
-    plt.xticks(num_states_configs, labels=num_states_configs)
 
     plt.title(model_name.upper())
     # plt.legend(loc='lower right')
@@ -88,6 +91,7 @@ def plotCV_diff_model_Score(path, model_prefixes, num_states_configs, score_type
     for model_name in model_prefixes:
         model_scores = OrderedDict()
         for i, s in enumerate(num_states_configs):
+            print(i, s)
             hmm_train_scores = loadCV_Scores_by_z(path, model_name, s, score_type=score_type)
             if len(hmm_train_scores) > 0:
                 if score_type == 'alignment_cost':
@@ -99,6 +103,12 @@ def plotCV_diff_model_Score(path, model_prefixes, num_states_configs, score_type
         print(model_name, model_scores)
         plt.plot(model_scores.keys(), model_scores.values(), 'o-', label=model_name)
 
+    plt.xticks(num_states_configs, labels=num_states_configs)
+    # plt.xlim(num_states_configs[0]-0.1, num_states_configs[-1]+0.1)
+    if score_type == 'll':
+        plt.plot([0], chance_pkl_normalized, 'o-', label='Chance')
+        plt.xticks([0] + num_states_configs, labels=[0] + num_states_configs)
+
     if score_type == 'r2':
         plt.ylabel('$R^2$ score')
         plt.ylim(-0.1, 1.1)
@@ -107,7 +117,6 @@ def plotCV_diff_model_Score(path, model_prefixes, num_states_configs, score_type
     elif score_type == 'alignment_cost':
         plt.ylabel('Alignment Cost')
     plt.xlabel('Number of states')
-    plt.xticks(num_states_configs, labels=num_states_configs)
     plt.legend()
     plt.margins(0.1)
     plt.grid(alpha=0.15)
@@ -119,18 +128,19 @@ def plotCV_diff_model_Score(path, model_prefixes, num_states_configs, score_type
     return
 
 
-path = 'models/CV_rnn/'
+task = 'cyclicfwdrnn'
+path = f'models/{task}/CV'
 
-# plotCV_same_model_Score(path, 'LRHMM', [8], score_type='alignment_cost', savefig=True, display=False)
-# sys.exit(0)
+chance_pkl = load_specific_path(glob.glob(f'{path}/Chance_0/**/')[0])
+chance_pkl_normalized = normalize_lp(chance_pkl['ll'], chance_pkl)
 
-
+n_state_range = [2, 3, 4, 5, 8]
 model_prefixes = ['GHMM', 'LRHMM', 'IDGHMM', 'IDLRHMM']
-plotCV_diff_model_Score(path, model_prefixes, range(2, 11), score_type='r2', savefig=True, display=False)
-plotCV_diff_model_Score(path, model_prefixes, range(2, 11), score_type='ll', savefig=True, display=False)
-plotCV_diff_model_Score(path, model_prefixes, range(2, 11), score_type='alignment_cost', savefig=True, display=False)
+plotCV_diff_model_Score(path, model_prefixes, n_state_range, score_type='r2', savefig=True, display=False)
+plotCV_diff_model_Score(path, model_prefixes, n_state_range, score_type='ll', savefig=True, display=False)
+plotCV_diff_model_Score(path, model_prefixes, n_state_range, score_type='alignment_cost', savefig=True, display=False)
 
 for mn in model_prefixes:
-    plotCV_same_model_Score(path, mn, range(2, 11), score_type='ll', savefig=True, display=False)
-    plotCV_same_model_Score(path, mn, range(2, 11), score_type='r2', savefig=True, display=False)
-    plotCV_same_model_Score(path, mn, range(2, 11), score_type='alignment_cost', savefig=True, display=False)
+    plotCV_same_model_Score(path, mn, n_state_range, score_type='ll', savefig=True, display=False)
+    plotCV_same_model_Score(path, mn, n_state_range, score_type='r2', savefig=True, display=False)
+    plotCV_same_model_Score(path, mn, n_state_range, score_type='alignment_cost', savefig=True, display=False)
