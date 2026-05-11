@@ -8,11 +8,12 @@ class BaseData:
     """
     Base class to help generate various synthetic datasets
     """
-    def __init__(self, n_states, n_inputs, n_obs_dim):
+    def __init__(self, n_states, n_inputs, n_obs_dim, task_config):
         self.n_states = n_states
         self.n_inputs = n_inputs
         self.n_obs_dim = n_obs_dim
-        self.n_steps = None
+        self.task_config = task_config
+        pass
 
     def get_inputs_array(self, n_steps):
         raise NotImplementedError()
@@ -70,4 +71,4 @@ class BaseData:
         states = np.array(states)
         observations = np.array(observations)
         true_transition_matrices = np.array(true_transition_matrices)
-        return inputs, stim_seqs, states, observations, true_transition_matrices
+        return inputs, stim_seqs, states, observations, true_transition_matrices, self.task_config

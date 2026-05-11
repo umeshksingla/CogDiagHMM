@@ -18,7 +18,7 @@ class NBackTaskData(BaseData):
     """
     prefix = 'n-Back Task'
     def __init__(self, n_states, n_inputs, n_obs_dim):
-
+        self.n_states = n_states
         self.nback = 3  # n in n-back; Simulating a 3-back task for now.
         self.vocab_size = 2  # [0, 1]
         self.state_dict = {format(i, f'0{self.nback}b'): i for i in range(2**self.nback)}
@@ -27,6 +27,10 @@ class NBackTaskData(BaseData):
 
         assert n_states == np.power(self.vocab_size, self.nback)
         assert n_inputs == 1    # Just the current Input
+        self.task_config = {
+            'n_states': self.n_states,
+            'vocab_size': self.vocab_size,
+        }
         super().__init__(n_states, n_inputs, n_obs_dim)
 
         # ------- Define Ground Truth Parameters -------

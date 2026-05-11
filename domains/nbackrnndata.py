@@ -5,7 +5,7 @@ from domains.basedata import BaseData
 from domains.plots import *
 from domains.utils import *
 
-from __data_utils import load_and_split_data
+from __data_utils import load_data
 
 
 class NBackRNNData(BaseData):
@@ -20,16 +20,20 @@ class NBackRNNData(BaseData):
     """
     prefix = '3-Back RNN'
     def __init__(self, n_states, n_inputs):
-
+        self.n_states = n_states
         self.nback = 3  # n in n-back; Simulating a 3-back task for now.
         self.vocab_size = 2  # [0, 1]
-        self.state_dict = {format(i, f'0{self.nback}b'): i for i in range(2**self.nback)}
+        self.state_dict = {format(i, f'0{self.nback}b'): i for i in range(n_states)}
         print("Vocabulary size: {}".format(self.vocab_size))
         print("State space: {}".format(self.state_dict))
 
         assert n_states == np.power(self.vocab_size, self.nback)
         assert n_inputs == 1    # Just the current Input
-        super().__init__(n_states, n_inputs, None)
+        task_config = {
+            'n_states': self.n_states,
+            'vocab_size': self.vocab_size,
+        }
+        super().__init__(n_states, n_inputs, None, task_config)
 
         # ------- Define Ground Truth Parameters -------
         emissions, _, inputs, _, behavouts, _ = (
@@ -96,7 +100,7 @@ def execute():
     N_OBS_DIM = 2
     STEPS = 100
 
-    gen_model = NBackRNNData(N_STATES, N_INPUTS, N_OBS_DIM)
+    gen_model = NBackRNNData(N_STATES, N_INPUTS)
     inputs, true_states, observations, true_matrices = gen_model.generate(n_batches=10, n_steps=STEPS)
 
     print(f"Generated {STEPS} timesteps.")
