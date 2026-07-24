@@ -54,7 +54,7 @@ def load_rnn_data(filepath):
     # joblib.dump(data_dump2, filepath.replace('.pt', '.joblib'))
     # return
     data_dump = joblib.load(filepath)
-    # print(data_dump.keys())
+    print(data_dump.keys())
     # print(data_dump['sequences'].shape)
     # return
     # X_train, X_test = data_dump['X_train'], data_dump['X_test']
@@ -62,7 +62,7 @@ def load_rnn_data(filepath):
     # Extract the hidden states tensor
     hidden_states_tensor = data_dump['hidden_states']
     input_sequences_tensor = data_dump['sequences']
-    labels_tensor = data_dump.get('labels', data_dump['targets'])
+    labels_tensor = data_dump.get('labels', data_dump.get('targets', None))
 
     print(f"Original data shape: {hidden_states_tensor.shape} {input_sequences_tensor.shape} {labels_tensor.shape}")
 
@@ -101,6 +101,8 @@ def save_model_config(config, output_dir):
 
 
 def load_specific_path(model_dir):
+    if not os.path.exists(os.path.join(model_dir, 'SUCCESS.txt')):
+        return None
 
     with open(os.path.join(model_dir, 'SUCCESS.txt')) as f: fit_success = f.read()
     if fit_success != 'True':

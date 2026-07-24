@@ -7,20 +7,24 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FixedLocator
 
 
-def plot_state_probs(z_to_plot, state_probs, title=None, plot_n_steps=None, savefig=False, fig_path=None, display=True):
+def plot_state_probs(z_to_plot, state_probs, probs_type=None, plot_n_steps=None, savefig=False, fig_path=None, display=True):
     STEPS = len(state_probs) if plot_n_steps is None else plot_n_steps
-    fig = plt.figure(figsize=(12, 3))
+    fig = plt.figure(figsize=(8, 2))
     for z in sorted(z_to_plot):
-        plt.plot(range(STEPS), state_probs[:STEPS, z], c=COLORS[z], linewidth=3, label=f'State {z}')
+        plt.plot(np.arange(0, STEPS-1), state_probs[:STEPS-1, z], c=COLORS[z], linewidth=1, label=f'State {z}')
 
     plt.ylim([-0.05, 1.05])
     plt.yticks([0, 1])
+    plt.margins(x=0.01)
 
-    plt.ylabel('P(state | data)')
-    plt.xlabel('Time (s)')
-    plt.legend(loc='upper right')
+    if probs_type == 'predicted':
+        plt.ylabel('P(state | PAST)')
+    elif probs_type in ['smoothed', 'filtered']:
+        plt.ylabel('P(state | ALL TIME)')
+    plt.xlabel('Time')
+    # plt.legend(loc='upper right')
 
-    if title: plt.title(title)
+    # if title: plt.title(title)
     plt.tight_layout()
     if savefig: fig.savefig(fig_path, dpi=300, bbox_inches='tight', transparent=True)
     if display: plt.show()
@@ -68,6 +72,42 @@ def visualize_task(state_labels, stim_seq, true_states, observations, recovered_
     ax[-1].set_xlabel('Time')
     fig.align_ylabels()
 
+    plt.tight_layout()
+    if savefig:
+        fig.savefig(fig_path, bbox_inches='tight', dpi=300, transparent=True)
+    if display:
+        plt.show()
+    return
+
+
+def visualize_task_neural_activity(state_labels, stim_seq, true_states, observations, recovered_states=None, predicted_observations=None, predicted_observations2=None, plot_n_steps=None, savefig=False, display=True, fig_path=None):
+    # print(state_labels.shape, stim_seq.shape, true_states.shape, recovered_states.shape, predicted_observations.shape)
+    # fig = plt.figure(figsize=(7, 2))
+    # ax = plt.gca()
+
+    print("observations.shape", observations.shape)
+
+    if predicted_observations is not None:
+        assert observations.shape[-1] == predicted_observations.shape[-1]
+
+    fig, axes = plt.subplots(observations.shape[-1], 1, figsize=(4.5, 4), sharex=True)
+
+    STEPS = len(stim_seq) if plot_n_steps is None else plot_n_steps
+
+    for _ in range(observations.shape[-1]):
+        axi = axes[_]
+        label = 'True Activity'
+        axi.plot(range(STEPS), observations[:STEPS, _], '-', label=label, color='gray', alpha=1, linewidth=1)
+        # axi.set_ylabel(f'Dim {_+1} (a.u.)')
+        if predicted_observations is not None:
+            label = 'HMM'
+            axi.plot(range(STEPS), predicted_observations[:STEPS, _], '-', label=label, color='blue', alpha=1, linewidth=1)
+        if axi.get_subplotspec().is_first_row():
+            axi.legend(loc='upper right', fontsize='x-small')
+
+    axi.set_xlabel('Time')
+    fig.align_ylabels()
+    fig.supylabel("Neural Activity (a.u.)")
     plt.tight_layout()
     if savefig:
         fig.savefig(fig_path, bbox_inches='tight', dpi=300, transparent=True)
@@ -139,39 +179,61 @@ def visualize_trans_probs(gen_model, inputs, true_states, observations, true_mat
     return
 
 
-def plot_confusion_mtx(cm, true_labels, align=True, savefig=False, fig_dir=None, display=True):
-    fig = plt.figure(figsize=(7, 6), constrained_layout=True)
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+def plot_normalized_confusion_mtx(cm, hmm_n_states, true_n_states, size=2, suffix='', savefig=False, fig_dir=None, display=True):
+    fig = plt.figure(figsize=(size+.5, size), constrained_layout=True)
+    ax = plt.gca()
+    sns.heatmap(cm[:hmm_n_states][:, :true_n_states], annot=False, fmt='.2f', cmap='Blues', square=True,
+                vmin=0, vmax=1, ax=ax,
                 linewidths=.1, linecolor='black',
-                xticklabels=true_labels, yticklabels=true_labels)
-    plt.xlabel('Recovered State Label')
-    plt.ylabel('True State Label')
-    if align:
-        plt.title('Confusion Matrix (After Alignment)')
-    else:
-        plt.title('Confusion Matrix (Before Alignment)')
+                xticklabels=[],
+                yticklabels=[],
+                cbar_kws={'ticks': [0, 1]},
+                )
+    plt.ylabel('Recovered State Label')
+    plt.xlabel('True State Label')
+    plt.title('Confusion Matrix')
     if savefig:
-        fig.savefig(os.path.join(fig_dir, f'conf_matrix_align={align}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
+        fig.savefig(os.path.join(fig_dir, f'conf_matrix_{suffix}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
     if display:
         plt.show()
     plt.close()
     return
 
 
-def plot_transition_matrix(transition_matrix, title='', savefig=False, fig_dir=None, display=True):
-    m = transition_matrix.shape[0]
-    fig = plt.figure(figsize=(7, 7), constrained_layout=True)
+def plot_confusion_mtx(cm, hmm_n_states, true_n_states, size=5, suffix='', savefig=False, fig_dir=None, display=True):
+    fig = plt.figure(figsize=(size, size), constrained_layout=True)
     ax = plt.gca()
-    sns.heatmap(transition_matrix, annot=True, cmap='bone', cbar=False, square=True, fmt=".3f",
+    sns.heatmap(cm[:hmm_n_states][:, :true_n_states], annot=False, fmt='d', cmap='Blues', square=True,
+                ax=ax,
+                linewidths=.1, linecolor='black',
+                xticklabels=[f'{i}' for i in range(true_n_states)],
+                yticklabels=[f'{i}' for i in range(hmm_n_states)],
+                )
+    plt.xlabel('Recovered State Label')
+    plt.ylabel('True State Label')
+    plt.title('Confusion Matrix')
+    if savefig:
+        fig.savefig(os.path.join(fig_dir, f'conf_matrix_{suffix}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
+    if display:
+        plt.show()
+    plt.close()
+    return
+
+
+def plot_transition_matrix(transition_matrix, size=5, title='', suffix='', savefig=False, fig_dir=None, display=True):
+    m = transition_matrix.shape[0]
+    fig = plt.figure(figsize=(size, size), constrained_layout=True)
+    ax = plt.gca()
+    sns.heatmap(transition_matrix, annot=True, cmap='bone', cbar=False, square=True, fmt=".2f",
                 vmin=0, vmax=1, ax=ax,
                 xticklabels=[f'{i}' for i in range(m)],
                 yticklabels=[f'{i}' for i in range(m)], annot_kws={'size': 'small'})
     plt.title(title)
-    plt.xlabel('state t')
-    plt.ylabel('state t-1')
+    plt.xlabel('state $t$')
+    plt.ylabel('state $t$-1')
     plt.yticks(rotation=0)
     plt.tight_layout()
-    if savefig: fig.savefig(os.path.join(fig_dir, f'{title}_transition_matrix.pdf'), bbox_inches='tight', dpi=300, transparent=True)
+    if savefig: fig.savefig(os.path.join(fig_dir, f'transition_matrix_{suffix}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
     if display: plt.show()
     plt.close()
     return
