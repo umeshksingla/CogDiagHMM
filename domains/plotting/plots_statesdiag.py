@@ -29,7 +29,7 @@ def draw_pie_node(ax, x, y, fractions, colors, radius=0.1, lw=0, ls='-'):
     return
 
 
-def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=3.8, base_colors=COLORS, custom_pos=None, suffix='', props={}, savefig=False, fig_dir=None, display=True):
+def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, suffix='', savefig=False, fig_dir=None, display=True):
     """
     T_true: (N, N) Ground truth transition matrix
     T_hmm: (M, M) HMM inferred transition matrix
@@ -38,8 +38,8 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=3.8
 
     # The colors in an HMM graph node correspond to proportion of ground truth states with those colors
 
-    xmargin = props.get('xmargin', 0)
-    ymargin = props.get('ymargin', 0)
+    xmargin = props.get('xmargin', 0.1)
+    ymargin = props.get('ymargin', 0.1)
     edge_rad = props.get('edge_rad', 0.1)               # for all other edges
     linear_rad = props.get('linear_rad', 0.0)     # if adjacent state edges
 
@@ -68,6 +68,7 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=3.8
             continue
 
         rad = get_rad(u, v, linear_rad, edge_rad)
+        print(f'drawing, {u} -> {v} with weight {weight}')
         nx.draw_networkx_edges(
             G_true, pos_true, edgelist=[(u, v)],
             width=weight * 3, arrowsize=15, edge_color='black', ax=ax_true, connectionstyle=f"arc3,rad={rad}",
@@ -84,7 +85,7 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=3.8
     ax_true.margins(y=ymargin, x=xmargin)
 
     plt.tight_layout()
-    if savefig: fig.savefig(os.path.join(fig_dir, f'ethograms_groundtruth.pdf'), bbox_inches='tight', dpi=300, transparent=True)
+    if savefig: fig.savefig(os.path.join(fig_dir, f'ethograms_groundtruth_{suffix}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
     if display: plt.show()
     plt.close()
 
@@ -92,7 +93,7 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=3.8
     if T_hmm is None: return
     G_hmm = nx.DiGraph(T_hmm)
 
-    fig = plt.figure(figsize=(size, size))
+    fig = plt.figure(figsize=size)
     ax_hmm = plt.gca()
     # ax_hmm.set_title("Inferred HMM Graph")
 
@@ -113,14 +114,15 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=3.8
     # Draw inferred edges (Spiderweb/Hairball effect)
     for u, v in G_hmm.edges():
         weight = T_hmm[u, v]
-        if weight <= 0.05:  # Filter microscopic probabilities
+        print(u, v, weight)
+        if weight <= 0.05 or np.isnan(weight):  # Filter microscopic probabilities
             continue
         # Correct vs Incorrect transition logic for coloring (optional, left as black with varying opacity)
-        alpha_val = min(1.0, weight * 2)
+        # alpha_val = min(1.0, weight * 2)
         rad = get_rad(u, v, linear_rad, edge_rad)
         nx.draw_networkx_edges(
             G_hmm, pos_hmm, edgelist=[(u, v)],
-            width=weight * 3, arrowsize=15, ax=ax_hmm, alpha=alpha_val,
+            width=weight * 3, arrowsize=15, ax=ax_hmm,
             edge_color='black', connectionstyle=f"arc3,rad={rad}", node_size=1000 if u != v else 500
         )
 
