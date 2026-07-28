@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     BATCHES = 20
     STEPS = 10000
-    task = 'orderedtask'
+    task = 'cyclicfwdtask'
     data_path = f'/Users/usingla/research/CogDiagHMM/data/{task}_may4.pkl'
     stim_seqs, resp_seqs, true_states, observations, task_config = construct_data(task, BATCHES, STEPS)
     save_data(data_path, {'stim_seqs': stim_seqs, 'resp_seqs': resp_seqs, 'true_states': true_states, 'observations': observations, 'task_config': task_config})

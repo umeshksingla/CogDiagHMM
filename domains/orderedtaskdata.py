@@ -66,8 +66,7 @@ class OrderedTaskData(BaseData):
             self.means = np.hstack([self.means] * n_obs_dim)
         self.covs = np.array([np.eye(n_obs_dim)*0.1 for _ in range(n_states+1)])  # Low variance (easy to detect)
 
-
-    def get_stim_resp_seqs(self, n_steps):
+    def get_stim_resp_array(self, n_steps):
 
         stim_seq = np.empty(n_steps, dtype=int)
         state_seq = np.empty(n_steps+1, dtype=int)
@@ -76,13 +75,7 @@ class OrderedTaskData(BaseData):
         # ------- Task Logic --------
         def tr_f(zt, xt):
             if xt != self.STIMULUS_RESET:
-                # if xt > zt:
-                #     ztt = xt       # max(xt, zt)
-                #     rt = 1         # (xt > zt)
-                # else:
-                #     ztt = zt
-                #     rt = 0
-                ztt, rt = (xt, 1) if xt > zt else (zt, 0)
+                ztt, rt = (xt, 1) if xt > zt else (zt, 0)   # max(xt, zt)
             else:                  # RESET
                 ztt = self.STATE_RESET
                 rt = 0
@@ -150,7 +143,7 @@ def execute():
         'ymargin': 2.0,
     }
 
-    plot_structural_collapse(np.round(T_true, 2), size=(5, 5), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='.')
+    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=False, fig_dir='.')
 
     return
 

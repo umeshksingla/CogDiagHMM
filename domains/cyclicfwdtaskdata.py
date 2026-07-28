@@ -1,9 +1,7 @@
-import numpy as np
-from sklearn.preprocessing import OneHotEncoder
-
 from domains.basedata import BaseData
-from domains.plots import *
-from domains.utils import *
+from domains.plotting.plots import *
+from domains.plotting.plots_statesdiag import *
+from domains.utilities.utils import *
 
 
 class CyclicFwdTaskData(BaseData):
@@ -20,11 +18,18 @@ class CyclicFwdTaskData(BaseData):
     def __init__(self, n_states, n_inputs, n_obs_dim):
 
         self.vocab_size = 1
-        self.state_dict = {str(i): i for i in range(n_states)}
-        self.state_dict_inv = {i: str(i) for i in range(n_states)}
-        print("Vocabulary size: {}".format(self.vocab_size))
-        print("State space: {}".format(self.state_dict))
+        self.state_label_idx = {('S'+str(i)): i for i in range(n_states)}
+        self.state_idx_label = {state_z: state_label for state_label, state_z in self.state_label_idx.items()}
+        assert len(self.state_label_idx) == len(self.state_idx_label)
 
+        self.STATE_UNDETERMINED = -1  # Initial or until a state is determined.
+
+        self.stimulus_list = [0, 1]
+
+        print("Vocabulary size: {}".format(self.vocab_size))
+        print("State space: {}".format(self.state_label_idx))
+        print("Stimulus space: {}".format(self.stimulus_list))
+        assert n_states == 4, "Response function needs updating if n_states is modified."
         assert n_inputs == 1    # Just the current Input
         task_config = {
             'n_states': n_states,
@@ -35,61 +40,47 @@ class CyclicFwdTaskData(BaseData):
         # ------- Define Ground Truth Parameters -------
 
         # ------- Transition Params -------
-        # None
+
+        # ------- Behavioral output parameters -------
 
         # ------- Emission Params -------
-        self.means = np.linspace(-10, 10, n_states).reshape(-1, 1)
+        self.means = np.linspace(-10, 10, n_states+1).reshape(-1, 1)
         if n_obs_dim > 1:
             self.means = np.hstack([self.means] * n_obs_dim)
         self.covs = np.array([np.eye(n_obs_dim)*0.1 for _ in range(n_states)])  # Low variance (easy to detect)
 
-    def get_inputs_array(self, n_len):
-        # stim_seq = np.array([0, 1, 0, 0, 0, 1, 1, 0, 0])
-        import random
-        stim_seq = np.random.choice([0, 1], p=[0.9, 0.1], size=n_len)
-        # behoutputs = (stim_seq[self.nback:] == stim_seq[:-self.nback]).astype(int)
-        # inputs = np.vstack([stim_seq[self.nback:], behoutputs]).T
-        # print("inputs.shape:", inputs.shape, stim_seq.shape)
-        inputs = stim_seq[1:][..., None]
-        return inputs, stim_seq
+    def get_stim_resp_array(self, n_steps):
 
-    def get_transition_matrix(self, inpt):
-        return np.zeros((self.n_states, self.n_states))
+        stim_seq = np.empty(n_steps, dtype=int)
+        state_seq = np.empty(n_steps+1, dtype=int)
+        resp_seq = np.empty(n_steps, dtype=int)
 
-    def get_observation_t(self, state):
-        state_z = self.state_dict[state]
+        state_seq[0] = 0    # Start at 0 state.
+        for t in range(1, n_steps+1):
+            current_stimulus = np.random.choice(self.stimulus_list)  # xt
+            stim_seq[t-1] = current_stimulus
+            state_seq[t]  = (state_seq[t-1] + 1) % self.n_states                            # zt+1 = f(zt)
+            resp_seq[t-1] = (state_seq[t - 1] >> current_stimulus) & 1      # when stim=0, give me right bit. when 1, give me left bit (or second to last bit).
+
+        # state_seq = np.concatenate(([self.STATE_UNDETERMINED], state_seq))
+        self.state_seq = state_seq
+        return stim_seq, resp_seq
+
+    def get_observation_t(self, state_z, inpt):
         return np.random.multivariate_normal(
-            self.means[state_z], self.covs[state_z]
+            self.means[state_z+1], self.covs[state_z]
         )
-
-    def Z(self, s_t):
-        return self.state_dict_inv[s_t]
 
     def generate_one(self, n_steps, btch=None):
         self.n_steps = n_steps
-        n_len = n_steps + 1
-        inputs, stim_seq = self.get_inputs_array(n_len)
-
-        states = [-1] * n_len
-        observations = np.zeros((n_len, self.n_obs_dim))
+        stim_seq, resp_seq = self.get_stim_resp_array(n_steps)
+        observations = np.zeros((n_steps + 1, self.n_obs_dim), dtype=float)
 
         # Initial state
-        states[0] = self.Z(0)   # np.random.randint(self.n_states)
-        observations[0] = self.get_observation_t(states[0])
+        for t, z_t in enumerate(self.state_seq):
+            observations[t] = self.get_observation_t(z_t, None)
 
-        for t in range(1, n_len):
-            prev_state = self.state_dict[states[t-1]]
-            current_input = stim_seq[t]
-            # Next State is (s + i %n) %n
-            states[t] = self.Z((prev_state + current_input) % self.n_states)
-            observations[t] = self.get_observation_t(states[t])
-
-        # states_z = np.array([self.state_dict[z] for z in states[1:]])
-        # Remove the first timepoints. Note that this loses the "Initial State" but that's fine.
-        states_z = np.array([self.state_dict[z] for z in states[1:]])
-        observations = observations[1:]
-        stim_seq = stim_seq[1:]
-        return inputs, stim_seq, states_z, observations, None
+        return stim_seq, resp_seq, self.state_seq, observations[1:], None
 
 
 def execute():
@@ -100,29 +91,30 @@ def execute():
     STEPS = 1000
 
     gen_model = CyclicFwdTaskData(N_STATES, N_INPUTS, N_OBS_DIM)
-    inputs, stim_seqs, true_states, observations, true_matrices, _ = gen_model.generate(n_batches=10, n_steps=STEPS)
+    stim_seqs, resp_seqs, true_states, observations, true_matrices, _  = gen_model.generate(n_batches=1, n_steps=STEPS)
 
     print(f"Generated {STEPS} timesteps.")
     print(f"States shape: {true_states.shape}")
-    print(f"Input Shape: {inputs.shape}")
+    print(f"Stimulus Shape: {stim_seqs.shape}")
+    print(f"Responses Shape: {resp_seqs.shape}")
     print(f"Obs Shape: {observations.shape}")
-
-    print("Inputs:", inputs)
+    print("Stimulus:", stim_seqs)
+    print("Response:", resp_seqs)
     print("True states:", true_states)
 
-    visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0],
-                   plot_n_steps=min(100, len(true_states[0])))
-    print(calc_transition_matrix(np.concatenate(true_states), N_STATES))
-
-    # visualize_trans_probs(gen_model, inputs, true_states, observations, true_matrices)
+    visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0], resp_seqs[0], plot_n_steps=min(100, len(true_states[0])))
+    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES)
+    plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=False, display=True)
+    props = {
+        'edge_rad': 0.3,
+        'linear_rad': 0.3,
+    }
+    plot_structural_collapse(np.round(T_true, 2), props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='.')
     return
 
 
 if __name__ == "__main__":
     execute()
 
-    # Example
-    # Inputs:
-    # States:
 
 

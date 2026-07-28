@@ -68,9 +68,6 @@ class NBackTaskData(BaseData):
         self.state_seq = state_seq
         return stim_seq, resp_seq
 
-    def get_transition_matrix(self, inpt):
-        return np.zeros((self.n_states, self.n_states))
-
     def get_observation_t(self, state_z, inpt):
         return np.random.multivariate_normal(
             self.means[state_z+1], self.covs[state_z]   # + 1 coz I want State -1 to be at the lowest activity.
