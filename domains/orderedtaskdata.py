@@ -71,6 +71,7 @@ class OrderedTaskData(BaseData):
         stim_seq = np.empty(n_steps, dtype=int)
         state_seq = np.empty(n_steps+1, dtype=int)
         resp_seq = np.empty(n_steps, dtype=int)
+        output_mask = np.ones(n_steps, dtype=bool)
 
         # ------- Task Logic --------
         def tr_f(zt, xt):
@@ -88,6 +89,7 @@ class OrderedTaskData(BaseData):
             state_seq[t] = next_state
 
         self.state_seq = state_seq
+        self.output_mask = output_mask
         return stim_seq, resp_seq
 
     def get_observation_t(self, state_z, inpt):
@@ -100,7 +102,7 @@ class OrderedTaskData(BaseData):
         if n_steps % self.trial_length != 0:
             raise ValueError(f"n_steps={n_steps} must be divisible by trial_length={self.trial_length}.")
 
-        stim_seq, resp_seq = self.get_stim_resp_seqs(n_steps)
+        stim_seq, resp_seq = self.get_stim_resp_array(n_steps)
         observations = np.zeros((n_steps+1, self.n_obs_dim), dtype=float)
         for t, z_t in enumerate(self.state_seq):
             observations[t] = self.get_observation_t(z_t,None)
@@ -126,9 +128,9 @@ def execute():
     print("Response:", resp_seqs)
     print("True states:", true_states)
 
-    # visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0], resp_seqs[0], plot_n_steps=min(100, len(true_states[0])))
-    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES)
-    # plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=False, display=True)
+    visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0], resp_seqs[0], plot_n_steps=min(100, len(true_states[0])))
+    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES, stim_seq=np.concatenate(stim_seqs))
+    plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=False, display=True)
 
     custom_pos = {
         0: ([0, 0]),
@@ -143,7 +145,7 @@ def execute():
         'ymargin': 2.0,
     }
 
-    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=False, fig_dir='.')
+    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
 
     return
 

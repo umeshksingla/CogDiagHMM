@@ -72,7 +72,7 @@ class HierarchicalCueTaskData(BaseData):
         # ------- Define input symbols -------
 
         self.stimulus_dict = {
-            "RESET": 0,
+            "RESET": -1,
             "SOLID": 1,
             "HOLLOW": 2,
             "RED_CIRCLE": 3,
@@ -240,9 +240,9 @@ def execute():
     print("Response:", resp_seqs)
     print("True states:", true_states)
 
-    # visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0], resp_seqs[0], plot_n_steps=min(100, len(true_states[0])))
-    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES)
-    # plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=False, display=True)
+    visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0], resp_seqs[0], plot_n_steps=min(100, len(true_states[0])))
+    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES, stim_seq=np.concatenate(stim_seqs))
+    plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=False, display=True)
 
     custom_pos = {
         0: ([0, 0]),
@@ -258,7 +258,7 @@ def execute():
         'edge_rad': 0.1,
     }
 
-    plot_structural_collapse(np.round(T_true, 2), size=(5, 5), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='.')
+    plot_structural_collapse(np.round(T_true, 2), size=(5, 5), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
 
     return
 

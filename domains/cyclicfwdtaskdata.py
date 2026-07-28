@@ -54,6 +54,7 @@ class CyclicFwdTaskData(BaseData):
         stim_seq = np.empty(n_steps, dtype=int)
         state_seq = np.empty(n_steps+1, dtype=int)
         resp_seq = np.empty(n_steps, dtype=int)
+        output_mask = np.ones(n_steps, dtype=bool)
 
         state_seq[0] = 0    # Start at 0 state.
         for t in range(1, n_steps+1):
@@ -64,6 +65,7 @@ class CyclicFwdTaskData(BaseData):
 
         # state_seq = np.concatenate(([self.STATE_UNDETERMINED], state_seq))
         self.state_seq = state_seq
+        self.output_mask = output_mask
         return stim_seq, resp_seq
 
     def get_observation_t(self, state_z, inpt):
@@ -109,7 +111,7 @@ def execute():
         'edge_rad': 0.3,
         'linear_rad': 0.3,
     }
-    plot_structural_collapse(np.round(T_true, 2), props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='.')
+    plot_structural_collapse(np.round(T_true, 2), props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
     return
 
 

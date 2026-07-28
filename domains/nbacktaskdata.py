@@ -55,6 +55,8 @@ class NBackTaskData(BaseData):
 
     def get_stim_resp_array(self, n_steps):
 
+        output_mask = np.ones(n_steps, dtype=bool)
+
         stim_seq = np.random.randint(0, self.vocab_size, (n_steps,))
         stim_seq[0:self.nback] = 0
 
@@ -66,6 +68,7 @@ class NBackTaskData(BaseData):
         state_seq = np.concatenate(([self.STATE_UNDETERMINED] * (self.nback-1), state_seq))
 
         self.state_seq = state_seq
+        self.output_mask = output_mask
         return stim_seq, resp_seq
 
     def get_observation_t(self, state_z, inpt):
@@ -137,7 +140,7 @@ def execute():
          6: ([0.0, -1.0]),
          7: ([-0.70710666, -0.70710685])
     }
-    plot_structural_collapse(np.round(T_true, 2), custom_pos=custom_pos, suffix='(before alignment)', savefig=True, display=False, fig_dir='.')
+    plot_structural_collapse(np.round(T_true, 2), custom_pos=custom_pos, suffix='(before alignment)', savefig=True, display=False, fig_dir='tasks/')
 
     return
 
