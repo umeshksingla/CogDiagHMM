@@ -6,6 +6,7 @@ from domains.nbackrnndata import NBackRNNData
 from domains.cyclicfwdrnndata import CyclicFwdRNNData
 from domains.hierarchytaskdata import HierarchicalCueTaskData
 from domains.orderedtaskdata import OrderedTaskData
+from domains.countingfinitetaskdata import CountingFiniteTaskData
 from domains.utilities.io_utils import save_data
 
 
@@ -26,6 +27,8 @@ def construct_data(task, BATCHES, STEPS, N_OBS_DIM=None):
         gen_model = HierarchicalCueTaskData(n_states=7, n_inputs=1, n_obs_dim=2)
     elif task == 'orderedtask':
         gen_model = OrderedTaskData(n_states=5, n_inputs=1, n_obs_dim=2)
+    elif task == 'countingfinitetask':
+        gen_model = CountingFiniteTaskData(n_states=6, n_inputs=1, n_obs_dim=2)
     else:
         raise ValueError('Unknown task')
     print(gen_model.__class__.__name__)
