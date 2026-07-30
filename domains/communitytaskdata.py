@@ -6,7 +6,7 @@ from domains.plotting.plots_statesdiag import *
 from domains.utilities.utils import *
 
 
-class CommunityTask(BaseData):
+class CommunityTaskData(BaseData):
     """
     Observations: State-dependent
     Transitions: Input-driven (State-dependent AND Input-dependent)
@@ -179,7 +179,7 @@ def execute():
     N_OBS_DIM = 2
     STEPS = 1000
 
-    gen_model = CommunityTask(N_STATES, N_INPUTS, N_OBS_DIM)
+    gen_model = CommunityTaskData(N_STATES, N_INPUTS, N_OBS_DIM)
     state_idx_label = gen_model.state_idx_label
     stim_seqs, resp_seqs, true_states, observations, true_matrices, _  = gen_model.generate(n_batches=1, n_steps=STEPS)
 
