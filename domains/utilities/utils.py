@@ -9,7 +9,10 @@ def softmax(x):
 def calc_transition_matrix(state_seq, n_states, stim_seq=None):
     mat = np.zeros((n_states, n_states), dtype=int)
     for t, (a, b) in enumerate(zip(state_seq[:-1], state_seq[1:])):
-        mat[a, b] += 1 if stim_seq[t] != -1 else 0
+        if stim_seq is not None:
+            mat[a, b] += 1 if stim_seq[t] != -1 else 0
+        else:
+            mat[a, b] += 1
 
     row_sums = mat.sum(axis=1, keepdims=True)
     transition_matrix = np.divide(          # safe division in case some state has no outgoing transitions

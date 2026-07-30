@@ -20,16 +20,16 @@ def save_data(path, data):
 
 def load_data(path):
     data = joblib.load(path)
-    inputs = data['inputs']
     stim_seqs = data['stim_seqs']
+    resp_seqs = data['resp_seqs']
     true_states = data['true_states']
     observations = data['observations']
     task_config = data['task_config']
-    print('inputs', inputs.shape, inputs.dtype)
+    print('resp_seqs', resp_seqs.shape, resp_seqs.dtype)
     print('stim_seqs', stim_seqs.shape, stim_seqs.dtype)
     print('true_states', true_states.shape, true_states.dtype)
     print('observations', observations.shape, observations.dtype)
-    return inputs, stim_seqs, true_states, observations, task_config
+    return stim_seqs, resp_seqs, true_states, observations, task_config
 
 
 def load_rnn_data(filepath):
@@ -83,6 +83,11 @@ def load_rnn_data(filepath):
 
     # print("Data split into training and testing sets.")
     return X_train, X_test, stimseqs_train, stimseqs_test, labels_train, labels_test
+
+
+def reformat_stim_resp_seqs_hmm(stim_seqs, resp_seqs):
+    inputs = np.concatenate((stim_seqs[..., None], resp_seqs[..., None]), axis=-1)
+    return inputs
 
 
 def gen_folder_name():

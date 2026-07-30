@@ -29,7 +29,7 @@ def draw_pie_node(ax, x, y, fractions, colors, radius=0.1, lw=0, ls='-'):
     return
 
 
-def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, suffix='', savefig=False, fig_dir=None, display=True):
+def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, node_label_mapping={}, task_name='', suffix='', savefig=False, fig_dir=None, display=True):
     """
     T_true: (N, N) Ground truth transition matrix
     T_hmm: (M, M) HMM inferred transition matrix
@@ -42,6 +42,8 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2
     ymargin = props.get('ymargin', 0.1)
     edge_rad = props.get('edge_rad', 0.1)               # for all other edges
     linear_rad = props.get('linear_rad', 0.0)     # if adjacent state edges
+    node_size = props.get('node_size', 1000)
+    radius = props.get('radius', 0.12)
 
     # --- 1. Graph Setup ---
     G_true = nx.DiGraph(T_true)
@@ -72,20 +74,20 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2
         nx.draw_networkx_edges(
             G_true, pos_true, edgelist=[(u, v)],
             width=weight * 3, arrowsize=15, edge_color='black', ax=ax_true, connectionstyle=f"arc3,rad={rad}",
-            node_size=1000 if u != v else 500,
+            node_size=node_size if u != v else 500,
         )
 
     # Draw true nodes (solid colors)
     for i in G_true.nodes():
-        draw_pie_node(ax_true, pos_true[i][0], pos_true[i][1], [1.0], [base_colors[i]], radius=0.12)
-        # ax_true.text(pos_true[i][0], pos_true[i][1], str(i), ha='center', va='center', color='white')
+        draw_pie_node(ax_true, pos_true[i][0], pos_true[i][1], [1.0], [base_colors[i]], radius=radius)
+        ax_true.text(pos_true[i][0], pos_true[i][1], node_label_mapping.get(i, str(i)), ha='center', va='center', color='white')
 
     ax_true.set_aspect('equal')
     ax_true.axis('off')
     ax_true.margins(y=ymargin, x=xmargin)
 
     plt.tight_layout()
-    if savefig: fig.savefig(os.path.join(fig_dir, f'ethograms_groundtruth_{suffix}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
+    if savefig: fig.savefig(os.path.join(fig_dir, f'ethograms_groundtruth_{task_name}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
     if display: plt.show()
     plt.close()
 
@@ -123,13 +125,13 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2
         nx.draw_networkx_edges(
             G_hmm, pos_hmm, edgelist=[(u, v)],
             width=weight * 3, arrowsize=15, ax=ax_hmm,
-            edge_color='black', connectionstyle=f"arc3,rad={rad}", node_size=1000 if u != v else 500
+            edge_color='black', connectionstyle=f"arc3,rad={rad}", node_size=node_size if u != v else 500
         )
 
     # Draw inferred nodes (Pie charts for State Merging, Clusters for State Splitting)
     for i in G_hmm.nodes():
         fractions = alignment_matrix[i, :]
-        draw_pie_node(ax_hmm, pos_hmm[i][0], pos_hmm[i][1], fractions, base_colors[:len(fractions)], radius=0.12, lw=1, ls=':')
+        draw_pie_node(ax_hmm, pos_hmm[i][0], pos_hmm[i][1], fractions, base_colors[:len(fractions)], radius=radius, lw=1, ls=':')
         # ax_hmm.text(pos_hmm[i][0], pos_hmm[i][1], str(i), ha='center', va='center', color='black',)
 
     ax_hmm.set_aspect('equal')

@@ -33,10 +33,10 @@ def align_hungarian(hmm_decoded_seq, ground_truth_seq):
 
     # Create the mapping dictionary
     optimal_mapping = {int(hmm_labels[j]): int(true_labels[i]) for i, j in zip(true_indices, hmm_indices)}
-    print("\nOptimal Mapping (Decoded Label -> True Label):")
-    pprint(optimal_mapping)
-    print('Decoded labels that found a match in true labels:', optimal_mapping.keys())
-    print('Correspoding true labels to above decoded ones:', optimal_mapping.values())
+    # print("\nOptimal Mapping (Decoded Label -> True Label):")
+    # pprint(optimal_mapping)
+    # print('Decoded labels that found a match in true labels:', optimal_mapping.keys())
+    # print('Correspoding true labels to above decoded ones:', optimal_mapping.values())
     for _ in hmm_labels:
         if _ not in optimal_mapping:
             optimal_mapping[_] = -1
@@ -59,13 +59,6 @@ def calculate_confusion_mtx(hmm_decoded_seq, ground_truth_seq, align=True):
     cm = confusion_matrix(ground_truth_seq, remapped_hmm_seq)
     # print(f"Confusion Matrix (align={align}):\n", cm)
     return cm, true_labels, remapped_hmm_seq, optimal_mapping, cost
-
-
-def calc_transition_matrix(state_seq, n_states):
-    mat = np.zeros((n_states, n_states), dtype=int)
-    for a, b in zip(state_seq[:-1], state_seq[1:]):
-        mat[a, b] += 1
-    return mat / mat.sum(axis=1, keepdims=True)
 
 
 def calc_r2_ahead(model, observations, inputs, kahead=5, probs_type='smoothed'):

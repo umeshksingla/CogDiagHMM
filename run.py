@@ -1,16 +1,9 @@
-import os
-import sys
 import time
 
-import joblib
-import numpy as np
-import jax.random as jr
-import matplotlib.pyplot as plt
-from sklearn.metrics import r2_score
 from pprint import pprint
 import matplotlib as mpl
 
-from domains.plots import *
+from domains.plotting.plots import *
 from hmmmodels.CogDiagModel import CogDiagLDA
 from hmmmodels.idGHMM import IDGHMM
 from hmmmodels.GHMM import GHMM
@@ -18,8 +11,12 @@ from hmmmodels.LRHMM import LRHMM
 from hmmmodels.idLRHMM import IDLRHMM
 from hmmmodels.Chance import Chance
 
-from domains.io_utils import *
-from utils import calc_transition_matrix, calc_r2_ahead, calculate_confusion_mtx, remap_state_probs
+from domains.utilities.io_utils import *
+from domains.utilities.utils import *
+from domains.plotting.custom_task_plot_configs import get_plot_config
+from domains.plotting.plots_statesdiag import plot_structural_collapse
+from domains.plotting.plots_statestraj import plot_misaligned_trajectories
+from utils import calc_r2_ahead, calculate_confusion_mtx, remap_state_probs
 
 ###################################################
 mpl.rcParams['font.size'] = 11  # Panel labels
@@ -29,11 +26,17 @@ mpl.rcParams['font.size'] = 11  # Panel labels
 def make_plots(model_path, savefig=False, display=True):
 
     model_ckp = load_specific_path(model_path)
-    FIG_PATH = os.path.join(model_path, "figures")
-    os.makedirs(FIG_PATH, exist_ok=True)
     if not model_ckp: return
 
+    print(model_ckp.keys())
+    if model_ckp['prefix'] == 'chance':
+        return
+
+    FIG_PATH = os.path.join(model_path, "figures")
+    os.makedirs(FIG_PATH, exist_ok=True)
+
     model_config = model_ckp['model_config']
+    task_name = model_config['task']
     task_config = model_ckp['task_config']
     em_lps = model_ckp['em_lps']
     inputs = model_ckp['inputs']
@@ -50,8 +53,8 @@ def make_plots(model_path, savefig=False, display=True):
     predicted_observations_predicted = model_ckp['predicted_observations_predicted']
     predicted_observations_smoothed = model_ckp['predicted_observations_smoothed']
     predicted_observations_filtered = model_ckp['predicted_observations_filtered']
-    print("predicted", predicted_observations_predicted[0])
-    print("filtered", predicted_observations_filtered[0])
+    # print("predicted", predicted_observations_predicted[0])
+    # print("filtered", predicted_observations_filtered[0])
 
     # predicted_observations2 = model_ckp['predicted_observations2']
     remapped_hmm_seq = model_ckp['remapped_hmm_seq']
@@ -60,40 +63,73 @@ def make_plots(model_path, savefig=False, display=True):
     unaligned_cm = model_ckp['unaligned_cm']
     optimal_mapping = model_ckp['optimal_mapping']
     true_labels = model_ckp['true_labels']
-    n_states = model_config['n_states']
+    hmm_n_states = model_config['n_states']
+    true_n_states = task_config['n_states']
     remapped_hmm_seq[remapped_hmm_seq < 0] = -1
 
-    print("optimal_mapping", optimal_mapping, "n_states", n_states)
-
-    r2_ahead_scores_predicted = model_ckp['r2_ahead_scores_predicted']
-    plot_overall_r2_ahead(r2_ahead_scores_predicted, kahead=5, title='predicted', savefig=savefig, display=display, fig_dir=FIG_PATH)
-
-    r2_ahead_scores_smoothed = model_ckp['r2_ahead_scores_smoothed']
-    plot_overall_r2_ahead(r2_ahead_scores_smoothed, kahead=5, title='smoothed', savefig=savefig, display=display, fig_dir=FIG_PATH)
-
-    r2_ahead_scores_smoothed = model_ckp['r2_ahead_scores_filtered']
-    plot_overall_r2_ahead(r2_ahead_scores_smoothed, kahead=5, title='filtered', savefig=savefig, display=display, fig_dir=FIG_PATH)
-
-    # LL plot first
-    plot_ll(em_lps, observations, seed, savefig=savefig, display=display, fig_dir=FIG_PATH)
-
-    # --- VISUALIZATIONS ---
-    plot_confusion_mtx(unaligned_cm, true_labels, align=False, savefig=savefig, display=display, fig_dir=FIG_PATH)
+    print("optimal_mapping", optimal_mapping, "hmm_n_states", hmm_n_states)
+    print(true_n_states, hmm_n_states)
 
     remapped_hmm_seq_ = np.concatenate(remapped_hmm_seq)
     recovered_states_ = np.concatenate(recovered_states)
     true_states_ = np.concatenate(true_states)
-    plot_confusion_mtx(aligned_cm, true_labels, align=True, savefig=savefig, display=display, fig_dir=FIG_PATH)
-    plot_transition_matrix(calc_transition_matrix(true_states_, task_config['n_states']),
-                           title='Ground Truth Transition Matrix', savefig=savefig, display=display, fig_dir=FIG_PATH)
-    plot_transition_matrix(calc_transition_matrix(recovered_states_, max(task_config['n_states'], model_ckp['model'].num_states)),
-                           title='Recovered Transition Matrix (Before Alignment)', savefig=savefig, display=display, fig_dir=FIG_PATH)
-    plot_transition_matrix(calc_transition_matrix(remapped_hmm_seq_, max(task_config['n_states'], model_ckp['model'].num_states)),
-                           title='Recovered Transition Matrix (After Alignment)', savefig=savefig, display=display, fig_dir=FIG_PATH)
+
+    T_true = calc_transition_matrix(true_states_, true_n_states)
+    T_hmm_pre_align = calc_transition_matrix(recovered_states_, max(true_n_states, hmm_n_states))       # why min??
+    # T_hmm_post_align = calc_transition_matrix(remapped_hmm_seq_, min(true_n_states, hmm_n_states))
+    normalized_pre_alignment_mtx = unaligned_cm / np.sum(unaligned_cm, axis=1)
+    # normalized_post_alignment_mtx = aligned_cm / np.sum(aligned_cm, axis=1)
+    print("unaligned_cm", unaligned_cm)
+
+    normalized_pre_alignment_mtx = normalized_pre_alignment_mtx / np.sum(normalized_pre_alignment_mtx, axis=0)  # This code needs alignment matrix normalized by columns.
+    normalized_pre_alignment_mtx = normalized_pre_alignment_mtx.T
+
+    # normalized_post_alignment_mtx = normalized_post_alignment_mtx / np.sum(normalized_post_alignment_mtx, axis=0)  # This code needs alignment matrix normalized by columns.
+    # normalized_post_alignment_mtx = normalized_post_alignment_mtx.T
+
+    # --- VISUALIZATIONS ---
+    plot_confusion_mtx(unaligned_cm.T, hmm_n_states, true_n_states, suffix='unaligned', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    # plot_confusion_mtx(aligned_cm, suffix='aligned', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    plot_normalized_confusion_mtx(normalized_pre_alignment_mtx, hmm_n_states, true_n_states, suffix='normalized_unaligned', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    # plot_normalized_confusion_mtx(normalized_post_alignment_mtx, suffix='normalized_aligned', savefig=savefig, display=display, fig_dir=FIG_PATH)
+
+    plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    plot_transition_matrix(T_hmm_pre_align, title='Recovered Transition Matrix', suffix='before_align', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    # plot_transition_matrix(T_hmm_post_align, title='Recovered Transition Matrix', suffix='after_align', savefig=savefig, display=display, fig_dir=FIG_PATH)
+
+    if hmm_n_states <= true_n_states:
+        custom_pos, props, size = get_plot_config(task_name)
+        plot_structural_collapse(np.round(T_true, 2), np.round(T_hmm_pre_align, 2), normalized_pre_alignment_mtx,
+                                 custom_pos=custom_pos, props=props, size=size,
+                                 suffix='custom (before alignment)', savefig=savefig, display=display, fig_dir=FIG_PATH)
+        plot_structural_collapse(np.round(T_true, 2), np.round(T_hmm_pre_align, 2), normalized_pre_alignment_mtx,
+                                 suffix='(before alignment)', savefig=savefig, display=display, fig_dir=FIG_PATH)
 
     TRAJ_FIG_PATH = os.path.join(FIG_PATH, 'trajs')
     os.makedirs(TRAJ_FIG_PATH, exist_ok=True)
     for b in [0, 1, 5]:
+        plot_state_probs(optimal_mapping.values(), state_probs_smoothed_remapped[b],
+                         probs_type='smoothed', plot_n_steps=50, savefig=savefig,
+                         fig_path=os.path.join(TRAJ_FIG_PATH, f'{b}_state_probs_smoothed_remapped.pdf'), display=display)
+        plot_state_probs(optimal_mapping.values(), state_probs_predicted_remapped[b],
+                         probs_type='predicted', plot_n_steps=50, savefig=savefig,
+                         fig_path=os.path.join(TRAJ_FIG_PATH, f'{b}_state_probs_predicted_remapped.pdf'), display=display)
+        visualize_task_neural_activity(true_labels,
+                       stim_seqs[b], true_states[b], observations[b], recovered_states[b],
+                       predicted_observations_predicted[b], None,
+                       plot_n_steps=100,
+                       savefig=savefig, display=display,
+                       fig_path=os.path.join(TRAJ_FIG_PATH, f'{b}_sample_neuralactivity_predicted.pdf'))
+        visualize_task_neural_activity(true_labels,
+                       stim_seqs[b], true_states[b], observations[b], recovered_states[b],
+                       predicted_observations_smoothed[b], None,
+                       plot_n_steps=100,
+                       savefig=savefig, display=display,
+                       fig_path=os.path.join(TRAJ_FIG_PATH, f'{b}_sample_neuralactivity_smoothed.pdf'))
+        if hmm_n_states <= true_n_states:
+            plot_misaligned_trajectories(true_states[b], recovered_states[b], normalized_pre_alignment_mtx, suffix=f'(before alignment)_{b}', plot_n_steps=50, savefig=savefig, display=display, fig_dir=TRAJ_FIG_PATH)
+        # plot_misaligned_trajectories(true_states[b], remapped_hmm_seq[b], normalized_post_alignment_mtx, suffix=f'(after alignment)_{b}', plot_n_steps=50, savefig=savefig, display=display, fig_dir=TRAJ_FIG_PATH)
+        break
         visualize_task(true_labels,
                        stim_seqs[b], true_states[b], observations[b], None,
                        None, None,
@@ -157,6 +193,19 @@ def make_plots(model_path, savefig=False, display=True):
         plot_state_probs(optimal_mapping.keys(), state_probs_filtered[b],
                          title='Filtered Posterior State Probabilities', plot_n_steps=100, savefig=savefig,
                          fig_path=os.path.join(TRAJ_FIG_PATH, f'{b}_state_probs_filtered.pdf'), display=display)
+
+
+    # r2_ahead_scores_predicted = model_ckp['r2_ahead_scores_predicted']
+    # plot_overall_r2_ahead(r2_ahead_scores_predicted, kahead=5, title='predicted', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    #
+    # r2_ahead_scores_smoothed = model_ckp['r2_ahead_scores_smoothed']
+    # plot_overall_r2_ahead(r2_ahead_scores_smoothed, kahead=5, title='smoothed', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    #
+    # r2_ahead_scores_smoothed = model_ckp['r2_ahead_scores_filtered']
+    # plot_overall_r2_ahead(r2_ahead_scores_smoothed, kahead=5, title='filtered', savefig=savefig, display=display, fig_dir=FIG_PATH)
+    #
+    # # LL plot first
+    # plot_ll(em_lps, observations, seed, savefig=savefig, display=display, fig_dir=FIG_PATH)
 
     return
 
@@ -252,10 +301,12 @@ def execute(model_config, savefig=False, display=False):
     pprint(model_config)
 
     # Get data
-    inputs, stim_seqs, true_states, observations, task_config = load_data(DATA_PATH)
+    stim_seqs, resp_seqs, true_states, observations, task_config = load_data(DATA_PATH)
+    inputs = reformat_stim_resp_seqs_hmm(stim_seqs, resp_seqs)
+    true_states = true_states[:, 1:]
     print("inputs", inputs[0, :10])
     print("true_states", true_states[0, :10])
-    print('inputs.shape:', inputs.shape, stim_seqs.shape, true_states.shape, observations.shape)
+    print('inputs.shape:', inputs.shape, stim_seqs.shape, resp_seqs.shape, true_states.shape, observations.shape)
     observations = observations.astype(np.float64)
     # sys.exit(0)
 
@@ -312,30 +363,9 @@ def execute(model_config, savefig=False, display=False):
         with open(os.path.join(MODEL_PATH, 'model_json.json'), 'w') as f: json.dump(model_json, f, indent=4)
         print('Saved model at:', MODEL_PATH)
         print('Plotting...')
-        make_plots(MODEL_PATH, savefig=savefig, display=display)
+        if savefig or display:
+            make_plots(MODEL_PATH, savefig=savefig, display=display)
         print('Finished plots.')
     else:
         print('Model not fit.')
     return
-
-
-if __name__ == "__main__":
-
-    task = 'cyclicfwdrnn'
-    data_path = f'/Users/usingla/research/CogDiagHMM/data/{task}_may4.pkl'
-    mc = {
-        "model_name": 'LRHMM',
-        "n_states": 4,
-        'path': f'/Users/usingla/research/CogDiagHMM/models/{task}',
-        'data_path': data_path,
-        'task': task
-    }
-    mc['seed'] = 8692 # 228739   # np.random.randint(10000)
-    for _ in range(15):
-        mc['seed'] = np.random.randint(10000)
-        start_time = time.time()
-        execute(mc, savefig=True, display=False)
-        print('Done in {:.2f} seconds'.format(time.time() - start_time))
-        # break
-
-

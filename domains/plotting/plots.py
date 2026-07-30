@@ -32,43 +32,59 @@ def plot_state_probs(z_to_plot, state_probs, probs_type=None, plot_n_steps=None,
     return
 
 
-def visualize_task(state_labels, stim_seq, true_states, observations, recovered_states=None, predicted_observations=None, predicted_observations2=None, plot_n_steps=None, savefig=False, display=True, fig_path=None):
+def visualize_task(state_labels, stim_seq, true_states, observations, resp_seq=None, recovered_states=None, predicted_observations=None, predicted_observations2=None, plot_n_steps=None, savefig=False, display=True, fig_path=None):
     # print(state_labels.shape, stim_seq.shape, true_states.shape, recovered_states.shape, predicted_observations.shape)
-    fig, ax = plt.subplots(3, 1, figsize=(10, 7), sharex=True)
+    nrows = 3 + (resp_seq is not None)
+    fig, ax = plt.subplots(nrows, 1, figsize=(10, 7), sharex=True)
 
     STEPS = len(stim_seq) if plot_n_steps is None else plot_n_steps
 
-    # Inputs
-    ax[0].set_title("Stimulus Sequence")
-    ax[0].plot(range(STEPS), stim_seq[:STEPS], '.-', label='Stim', alpha=0.7)
-    ax[0].legend(loc='upper right')
-    # ax[0].set_yticks([0, 1], [0, 1])
-    ax[0].grid(True, alpha=0.3)
+    START = 1       # xticks to label start at 1 and not 0.
+    END = STEPS
+
+    # Stimulus
+    axi = 0
+    ax[axi].set_title("Stimulus Sequence")
+    ax[axi].plot(range(START, END+1), stim_seq[:STEPS], '.-', label='Stimulus', alpha=0.7)
+    ax[axi].legend(loc='upper right')
+    ax[axi].grid(True, alpha=0.3)
+    ax[axi].set_ylabel('Stimulus')
+
+    if resp_seq is not None:
+        axi += 1
+        ax[axi].set_title("Response Sequence")
+        ax[axi].plot(range(START, END+1), resp_seq[:STEPS], '.-', label='Response', alpha=0.7)
+        ax[axi].legend(loc='upper right')
+        ax[axi].grid(True, alpha=0.3)
+        ax[axi].set_ylabel('Response')
 
     # Actual States
-    state_labels_copy = state_labels.copy()
-    ax[1].set_title("State Sequence")
-    ax[1].step(range(STEPS), true_states[:STEPS], where='post', label='True State Seq', color='black')
+    axi += 1
+    ax[axi].set_title("State Sequence")
+    ax[axi].step(range(START-1, END+1), true_states[:STEPS+1], where='mid', label='True State Seq', color='black')
+    # ax[axi].step(range(START, END+1), true_states[START:STEPS+1], where='mid', label='True State Seq', color='black')   # if we want to remove any states from before time step 1
     if recovered_states is not None:
-        ax[1].step(range(STEPS), recovered_states[:STEPS], where='post', label='Recovered State Seq', color='red')
-    ax[1].set_yticks(np.insert(state_labels_copy, 0, -1), ['X'] + [str(_) for _ in state_labels_copy])
-    ax[1].set_ylabel('State')
-    ax[1].grid(True, alpha=0.3)
-    ax[1].legend(loc='upper right')
+        ax[axi].step(range(START-1, END+1), recovered_states[:STEPS+1], where='mid', label='Recovered State Seq', color='red')
+    ax[axi].set_yticks(state_labels)
+    ax[axi].set_ylabel('State')
+    ax[axi].grid(True, alpha=0.3)
+    ax[axi].legend(loc='upper right')
 
     # Observations
-    ax[2].set_title("Observed Neural Activity")
+    axi += 1
+    ax[axi].set_title("Observed Neural Activity")
     for _ in range(observations.shape[-1]):
         label = 'True Activity' if _ == 0 else '_nolabel_'
-        ax[2].plot(range(STEPS), observations[:STEPS, _], '.:', label=label, color='gray', alpha=0.5)
+        ax[axi].plot(range(START, END+1), observations[:STEPS, _], '.:', label=label, color='gray', alpha=0.5)
     if predicted_observations is not None:
         for _ in range(predicted_observations.shape[-1]):
             label = 'Predicted' if _ == 0 else None
-            ax[2].plot(range(STEPS), predicted_observations[:STEPS, _], '.:', label=label, color='red', alpha=0.8)
-    ax[2].legend(loc='upper right')
-    ax[2].set_ylabel('a.u.')
-    ax[2].grid(True, alpha=0.3)
+            ax[axi].plot(range(START, END+1), predicted_observations[:STEPS, _], '.:', label=label, color='red', alpha=0.8)
+    ax[axi].legend(loc='upper right')
+    ax[axi].set_ylabel('a.u.')
+    ax[axi].grid(True, alpha=0.3)
 
+    ax[-1].set_xticks([START] + list(range(START+9, END+1, 10)))
     ax[-1].set_xlabel('Time')
     fig.align_ylabels()
 
