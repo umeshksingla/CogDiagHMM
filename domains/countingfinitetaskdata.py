@@ -10,22 +10,17 @@ class CountingFiniteTaskData(BaseData):
     """
     Observations: State-dependent
     Transitions: Input-driven (State-dependent AND Input-dependent)
-
-    Inputs are
-    Transition matrix
-
-    This is Case 1.
     """
-    prefix = 'CountingFinite Task'
+    prefix = 'countingfinitetask'
     def __init__(self, n_states, n_inputs, n_obs_dim):
 
         self.vocab_size = 1
-        # n_states = n_states+1  # for counting, need to have an extra zero state
-        self.state_label_idx = {('S'+str(i)): i for i in range(n_states)}
+        self.state_label_idx = {str(i): i for i in range(1, n_states)}
+        self.state_label_idx['R'] = 0
         self.state_idx_label = {state_z: state_label for state_label, state_z in self.state_label_idx.items()}
         assert len(self.state_label_idx) == len(self.state_idx_label)
 
-        self.STATE_RESET = 0  # Initial or until a state is determined.
+        self.STATE_RESET = self.state_label_idx['R']  # Initial or until a state is determined.
         self.STIMULUS_RESET = -1
 
         self.stimulus_list = [0, 1]
@@ -79,9 +74,6 @@ class CountingFiniteTaskData(BaseData):
 
         self.state_seq = state_seq
         self.output_mask = output_mask
-        print(stim_seq[:10])
-        print(state_seq[1:11])
-        print(output_mask[:10])
         return stim_seq, resp_seq
 
     def get_observation_t(self, state_z, inpt):
@@ -134,7 +126,7 @@ def execute():
     props = {
         'linear_rad': 0.,
     }
-    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
+    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, node_label_mapping=gen_model.state_idx_label, task_name=gen_model.prefix, savefig=True, display=True, fig_dir='tasks/')
     return
 
 

@@ -14,7 +14,7 @@ class CyclicFwdTaskData(BaseData):
 
     This is Case 1.
     """
-    prefix = 'CyclicFwd Task'
+    prefix = 'cyclicfwd'
     def __init__(self, n_states, n_inputs, n_obs_dim):
 
         self.vocab_size = 1
@@ -105,13 +105,13 @@ def execute():
     print("True states:", true_states)
 
     visualize_task(np.unique(np.concatenate(true_states)), stim_seqs[0], true_states[0], observations[0], resp_seqs[0], plot_n_steps=min(100, len(true_states[0])))
-    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES)
+    T_true = calc_transition_matrix(np.concatenate(true_states), N_STATES, stim_seq=np.concatenate(stim_seqs))
     plot_transition_matrix(T_true, title='Ground Truth Transition Matrix', suffix='true', savefig=False, display=True)
     props = {
         'edge_rad': 0.3,
         'linear_rad': 0.3,
     }
-    plot_structural_collapse(np.round(T_true, 2), props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
+    plot_structural_collapse(np.round(T_true, 2), props=props, node_label_mapping=gen_model.state_idx_label, task_name=gen_model.prefix, savefig=True, display=True, fig_dir='tasks/')
     return
 
 

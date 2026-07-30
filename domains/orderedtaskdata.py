@@ -14,18 +14,18 @@ class OrderedTaskData(BaseData):
     Transitions: Input-driven (State-dependent AND Input-dependent)
     """
 
-    prefix = "Ordered Task"
+    prefix = "orderedtask"
 
     def __init__(self, n_states, n_inputs, n_obs_dim):
         self.n_states = n_states
 
         # ------- Define states -------
 
-        self.state_label_idx = {('S'+str(i)): i for i in range(n_states)}
+        self.state_label_idx = {(str(i+1)): i for i in range(n_states)}
         self.state_idx_label = {state_z: state for state, state_z in self.state_label_idx.items()}
         assert len(self.state_label_idx) == len(self.state_idx_label)
 
-        self.STATE_RESET = 0
+        self.STATE_RESET = self.state_label_idx['1']
         self.RESPONSE_HOLD_VALUE = -1
         self.STATE_UNDETERMINED = -1  # Initial or until a state is determined.
         self.STIMULUS_RESET = -1   # No behavioral response is evaluated on holding steps.
@@ -145,7 +145,7 @@ def execute():
         'ymargin': 2.0,
     }
 
-    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
+    plot_structural_collapse(np.round(T_true, 2), size=(7, 7), custom_pos=custom_pos, props=props, node_label_mapping=gen_model.state_idx_label, task_name=gen_model.prefix, savefig=True, display=True, fig_dir='tasks/')
 
     return
 

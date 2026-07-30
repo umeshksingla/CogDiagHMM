@@ -46,7 +46,7 @@ class HierarchicalCueTaskData(BaseData):
     This is a seven-state hierarchical task.
     """
 
-    prefix = "Hierarchical Cue Task"
+    prefix = "hierarchicalcuetask"
 
     def __init__(self, n_states, n_inputs, n_obs_dim):
         self.n_states = n_states
@@ -104,6 +104,38 @@ class HierarchicalCueTaskData(BaseData):
         # ------- Define Ground Truth Parameters -------
 
         # ------- Transition Params -------
+        root = self.state_label_idx["ROOT"]
+        shape = self.state_label_idx["SHAPE"]
+        color = self.state_label_idx["COLOR"]
+
+        reset = self.stimulus_dict["RESET"]
+        solid = self.stimulus_dict["SOLID"]
+        hollow = self.stimulus_dict["HOLLOW"]
+        red_circle = self.stimulus_dict["RED_CIRCLE"]
+        red_square = self.stimulus_dict["RED_SQUARE"]
+        blue_circle = self.stimulus_dict["BLUE_CIRCLE"]
+        blue_square = self.stimulus_dict["BLUE_SQUARE"]
+
+        # transition_table[state, input] gives the next state.
+        # -1 indicates an invalid state-input combination.
+        self.transition_table = np.full((self.n_states, self.vocab_size), -1, dtype=int)
+
+        # RESET returns the process to the root from any state.
+        self.transition_table[:, reset] = self.state_label_idx["ROOT"]
+
+        # First hierarchical decision: which feature dimension matters?
+        self.transition_table[root, solid] = self.state_label_idx["SHAPE"]
+        self.transition_table[root, hollow] = self.state_label_idx["COLOR"]
+        # Shape branch: color is irrelevant.
+        self.transition_table[shape, red_circle] = self.state_label_idx["SHAPE_CIRCLE"]
+        self.transition_table[shape, blue_circle] = self.state_label_idx["SHAPE_CIRCLE"]
+        self.transition_table[shape, red_square] = self.state_label_idx["SHAPE_SQUARE"]
+        self.transition_table[shape, blue_square] = self.state_label_idx["SHAPE_SQUARE"]
+        # Color branch: shape is irrelevant.
+        self.transition_table[color, red_circle] = self.state_label_idx["COLOR_RED"]
+        self.transition_table[color, red_square] = self.state_label_idx["COLOR_RED"]
+        self.transition_table[color, blue_circle] = self.state_label_idx["COLOR_BLUE"]
+        self.transition_table[color, blue_square] = self.state_label_idx["COLOR_BLUE"]
 
 
         # ------- Behavioral output parameters -------
@@ -142,40 +174,6 @@ class HierarchicalCueTaskData(BaseData):
                 self.stimulus_dict["BLUE_CIRCLE"],
                 self.stimulus_dict["BLUE_SQUARE"],
             ])
-
-        # ------- Task Logic --------
-        root = self.state_label_idx["ROOT"]
-        shape = self.state_label_idx["SHAPE"]
-        color = self.state_label_idx["COLOR"]
-
-        reset = self.stimulus_dict["RESET"]
-        solid = self.stimulus_dict["SOLID"]
-        hollow = self.stimulus_dict["HOLLOW"]
-        red_circle = self.stimulus_dict["RED_CIRCLE"]
-        red_square = self.stimulus_dict["RED_SQUARE"]
-        blue_circle = self.stimulus_dict["BLUE_CIRCLE"]
-        blue_square = self.stimulus_dict["BLUE_SQUARE"]
-
-        # transition_table[state, input] gives the next state.
-        # -1 indicates an invalid state-input combination.
-        self.transition_table = np.full((self.n_states, self.vocab_size), -1, dtype=int)
-
-        # RESET returns the process to the root from any state.
-        self.transition_table[:, reset] = self.state_label_idx["ROOT"]
-
-        # First hierarchical decision: which feature dimension matters?
-        self.transition_table[root, solid] = self.state_label_idx["SHAPE"]
-        self.transition_table[root, hollow] = self.state_label_idx["COLOR"]
-        # Shape branch: color is irrelevant.
-        self.transition_table[shape, red_circle] = self.state_label_idx["SHAPE_CIRCLE"]
-        self.transition_table[shape, blue_circle] = self.state_label_idx["SHAPE_CIRCLE"]
-        self.transition_table[shape, red_square] = self.state_label_idx["SHAPE_SQUARE"]
-        self.transition_table[shape, blue_square] = self.state_label_idx["SHAPE_SQUARE"]
-        # Color branch: shape is irrelevant.
-        self.transition_table[color, red_circle] = self.state_label_idx["COLOR_RED"]
-        self.transition_table[color, red_square] = self.state_label_idx["COLOR_RED"]
-        self.transition_table[color, blue_circle] = self.state_label_idx["COLOR_BLUE"]
-        self.transition_table[color, blue_square] = self.state_label_idx["COLOR_BLUE"]
 
         for trial_idx in range(n_trials):
             start = trial_idx * self.trial_length
@@ -258,7 +256,7 @@ def execute():
         'edge_rad': 0.1,
     }
 
-    plot_structural_collapse(np.round(T_true, 2), size=(5, 5), custom_pos=custom_pos, props=props, suffix='(before alignment)', savefig=True, display=True, fig_dir='tasks/')
+    plot_structural_collapse(np.round(T_true, 2), size=(5, 5), custom_pos=custom_pos, props=props, task_name=gen_model.prefix, savefig=True, display=True, fig_dir='tasks/')
 
     return
 

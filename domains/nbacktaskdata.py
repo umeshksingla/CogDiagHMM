@@ -16,7 +16,7 @@ class NBackTaskData(BaseData):
 
     This is Case 1.
     """
-    prefix = 'n-Back Task'
+    prefix = 'nbacktask'
     def __init__(self, n_states, n_inputs, n_obs_dim):
         self.n_states = n_states
         self.nback = 3          # n in n-back; Simulating a 3-back task for now.
@@ -127,8 +127,9 @@ def execute():
         'edge_rad': 0.3,
         'linear_rad': 0.3,
         'ymargin': 1,
+        'radius': 0.15,
     }
-    plot_structural_collapse(np.round(T_true, 2), custom_pos=custom_pos, size=(10, 10), props=props, suffix='(before alignment)', savefig=True, display=False, fig_dir='.')
+    plot_structural_collapse(np.round(T_true, 2), custom_pos=custom_pos, size=(10, 10), props=props, node_label_mapping=gen_model.state_idx_label, task_name=gen_model.prefix, savefig=True, display=False, fig_dir='.')
 
     custom_pos = {
          0: ([-1.0, 0.0]),
@@ -140,7 +141,10 @@ def execute():
          6: ([0.0, -1.0]),
          7: ([-0.70710666, -0.70710685])
     }
-    plot_structural_collapse(np.round(T_true, 2), custom_pos=custom_pos, suffix='(before alignment)', savefig=True, display=False, fig_dir='tasks/')
+    props = {
+        'radius': 0.15,
+    }
+    plot_structural_collapse(np.round(T_true, 2), custom_pos=custom_pos, props=props, node_label_mapping=gen_model.state_idx_label, task_name=gen_model.prefix, savefig=True, display=False, fig_dir='tasks/')
 
     return
 
