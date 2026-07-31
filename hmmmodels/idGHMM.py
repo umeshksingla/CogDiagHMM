@@ -11,6 +11,7 @@ from dynamax.hidden_markov_model.inference import _condition_on
 import tensorflow_probability.substrates.jax.distributions as tfd
 
 from library.input_driven_gaussian_hmm import InputDrivenGaussianHMM
+from hmmmodels.GHMM import GHMM
 
 
 class IDGHMM(BaseModel):
@@ -29,12 +30,20 @@ class IDGHMM(BaseModel):
     def fit(self, emissions, inputs, true_states=None):
         print(f'--- Begin fitting {self.__class__.__name__} ---')
         key = jr.PRNGKey(self.seed)
+
+        ghmm = GHMM(self.num_states, self.emission_dim, self.seed)
+        ghmm.fit(emissions, inputs, true_states)
+
+        ghmm_emission_means = ghmm.learned_params.emissions.means
+        ghmm_emission_covs = ghmm.learned_params.emissions.covs
+
         init_params, props = self.hmm.initialize(key=key,
-                                                 # method='kmeans', emissions=emissions
+                                                 emission_means=ghmm_emission_means,
+                                                 emission_covariances=ghmm_emission_covs,
                                                  )
         self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=inputs, num_iters=50)
         self.fit_success = ~np.any(np.isnan(self.learned_params.transitions.weights))
-        print("\n--- HMM Training Finished ---")
+        print(f"\n--- {self.__class__.__name__} Training Finished ---")
         return
 
     # def __getstate__(self):
@@ -144,8 +153,6 @@ class IDGHMM(BaseModel):
     def get_data_logprob(self, emissions, inputs):
         """Evaluate the log probability of the data under the given model and model parameters"""
         lp = np.sum([self.hmm.marginal_log_prob(self.learned_params, e, i) for e, i in zip(emissions, inputs)])
-        lp_prior = self.hmm.log_prior(self.learned_params)
-        lp += lp_prior
         return lp.item()
 
     def postfit(self, state, inputs):

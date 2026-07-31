@@ -25,14 +25,14 @@ class GHMM(BaseModel):
         super().__init__()
 
     def fit(self, emissions, inputs, true_states=None):
-        print(f'--- Begin fitting {self.__class__.__name__} ---')
+        print(f'--- Begin fitting {self.__class__.__name__} (seed {self.seed})---')
         key = jr.PRNGKey(self.seed)
         init_params, props = self.hmm.initialize(key=key,
                                                  #method='kmeans', emissions=emissions
                                                  )
         self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=None, num_iters=50)
         self.fit_success = ~np.any(np.isnan(self.learned_params.transitions.transition_matrix))
-        print("\n--- HMM Training Finished ---")
+        print(f"\n--- {self.__class__.__name__} Training Finished ---")
         return
 
     def predict_soft(self, emissions, inputs, probs_type):
@@ -127,8 +127,6 @@ class GHMM(BaseModel):
     def get_data_logprob(self, emissions, inputs):
         """Evaluate the log probability of the data under the given model and model parameters"""
         lp = np.sum([self.hmm.marginal_log_prob(self.learned_params, e, i) for e, i in zip(emissions, inputs)])
-        lp_prior = self.hmm.log_prior(self.learned_params)
-        lp += lp_prior
         return lp.item()
 
     def postfit(self, state, inputs):

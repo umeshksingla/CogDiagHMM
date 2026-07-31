@@ -11,6 +11,8 @@ from dynamax.hidden_markov_model.inference import _condition_on
 import tensorflow_probability.substrates.jax.distributions as tfd
 from library.inputdriven_linreg_hmm import InputDrivenLinearRegressionHMM
 
+from hmmmodels.LRHMM import LRHMM
+
 
 class IDLRHMM(BaseModel):
     prefix = 'idlrHMM'
@@ -28,12 +30,21 @@ class IDLRHMM(BaseModel):
     def fit(self, emissions, inputs, true_states=None):
         print(f'--- Begin fitting {self.__class__.__name__} ---')
         key = jr.PRNGKey(self.seed)
+
+        lrhmm = LRHMM(self.num_states, self.input_dim, self.emission_dim, self.seed)
+        lrhmm.fit(emissions, inputs, true_states)
+        W = lrhmm.learned_params.emissions.weights
+        b = lrhmm.learned_params.emissions.biases
+        W = W + np.random.random(W.shape) * 1e-4
+        b = b + np.random.random(b.shape) * 1e-4
+
         init_params, props = self.hmm.initialize(key=key,
-                                                 # method='kmeans', emissions=emissions
+                                                 emission_weights=W,
+                                                 emission_biases=b
                                                  )
-        self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=inputs, num_iters=30)
+        self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=inputs, num_iters=50)
         self.fit_success = ~np.any(np.isnan(self.learned_params.transitions.weights))
-        print("\n--- HMM Training Finished ---")
+        print(f"\n--- {self.__class__.__name__} Training Finished ---")
         return
 
     def predict_soft(self, emissions, inputs, probs_type):
@@ -140,8 +151,6 @@ class IDLRHMM(BaseModel):
     def get_data_logprob(self, emissions, inputs):
         """Evaluate the log probability of the data under the given model and model parameters"""
         lp = np.sum([self.hmm.marginal_log_prob(self.learned_params, e, i) for e, i in zip(emissions, inputs)])
-        lp_prior = self.hmm.log_prior(self.learned_params)
-        lp += lp_prior
         return lp.item()
 
     def postfit(self, state, inputs):
