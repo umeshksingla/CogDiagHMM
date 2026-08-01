@@ -7,10 +7,9 @@ import jax.numpy as jnp
 import numpy as np
 import jax.random as jr
 from jax import vmap
-from dynamax.hidden_markov_model.inference import _condition_on
 import tensorflow_probability.substrates.jax.distributions as tfd
 
-from library.input_driven_gaussian_hmm import InputDrivenGaussianHMM
+from dynamax.hidden_markov_model.models.input_driven_gaussian_hmm import InputDrivenGaussianHMM
 from hmmmodels.GHMM import GHMM
 
 
@@ -43,7 +42,7 @@ class IDGHMM(BaseModel):
                                                  )
         self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=inputs, num_iters=50)
         self.fit_success = ~np.any(np.isnan(self.learned_params.transitions.weights))
-        print(f"\n--- {self.__class__.__name__} Training Finished ---")
+        print(f"\n--- {self.__class__.__name__} Training Finished --- (SUCCESS={self.fit_success})")
         return
 
     # def __getstate__(self):

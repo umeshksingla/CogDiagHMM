@@ -9,7 +9,6 @@ import numpy as np
 import jax.random as jr
 from jax import vmap
 from dynamax.hidden_markov_model.inference import _condition_on
-import tensorflow_probability.substrates.jax.distributions as tfd
 from dynamax.hidden_markov_model import LinearRegressionHMM
 
 
@@ -36,7 +35,7 @@ class LRHMM(BaseModel):
                                                  )
         self.learned_params, self.learned_lps = self.hmm.fit_em(init_params, props, emissions=emissions, inputs=inputs, num_iters=50)
         self.fit_success = ~np.any(np.isnan(self.learned_params.transitions.transition_matrix))
-        print(f"\n--- {self.__class__.__name__} Training Finished ---")
+        print(f"\n--- {self.__class__.__name__} Training Finished --- (SUCCESS={self.fit_success})")
         return
 
     def predict_soft(self, emissions, inputs, probs_type):

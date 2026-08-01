@@ -1,5 +1,4 @@
 import tensorflow_probability.substrates.jax.distributions as tfd
-import jax
 import numpy as np
 import jax.numpy as jnp
 from hmmmodels.BaseModel import BaseModel

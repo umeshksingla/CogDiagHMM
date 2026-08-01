@@ -14,8 +14,8 @@ from dynamax.hidden_markov_model import LinearAutoregressiveHMM
 class ARHMM(BaseModel):
     prefix = 'arHMM'
 
-    def __init__(self, num_states, emission_dim, num_lags=5, seed=0):
-        print(f'Initializing LRHMM model (seed={seed})')
+    def __init__(self, num_states, emission_dim, num_lags=1, seed=0):
+        print(f'Initializing ARHMM model (seed={seed})')
         self.seed = seed
         self.num_states = num_states
         self.emission_dim = emission_dim
