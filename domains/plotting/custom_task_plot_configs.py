@@ -1,7 +1,8 @@
 def get_plot_config(task_name):
+    print("Retrieving plot config for task", task_name)
     custom_pos, props = None, None
-    size = 4.2
-    if task_name == 'nbacktask':
+    size = (4.2, 4.2)
+    if task_name == 'nback':
         custom_pos = {
             0: ([0, 0]),
             1: ([1, 0]),
@@ -18,7 +19,7 @@ def get_plot_config(task_name):
             'ymargin': 1,
         }
         size = (10, 10)
-    elif task_name == 'orderedtask':
+    elif task_name == 'ordered':
         custom_pos = {
             0: ([0, 0]),
             1: ([1, 0]),
@@ -31,7 +32,7 @@ def get_plot_config(task_name):
             'ymargin': 2.0,
         }
         size = (7, 7)
-    elif task_name == 'hierarchicalcuetask':
+    elif task_name == 'hierarchicalcue':
         custom_pos = {
             0: ([0, 0]),
             1: ([-1, -1]),
@@ -45,12 +46,12 @@ def get_plot_config(task_name):
             'edge_rad': 0.1,
         }
         size = (5, 5)
-    elif task_name == 'cyclicfwdtask':
+    elif task_name == 'cyclicfwd':
         props = {
             'edge_rad': 0.3,
             'linear_rad': 0.3,
         }
-    elif task_name == 'countingfinitetask':
+    elif task_name == 'countingfinite':
         custom_pos = {
             0: ([0, 0]),
             1: ([1, 0]),
@@ -61,9 +62,10 @@ def get_plot_config(task_name):
         }
         props = {
             'linear_rad': 0.0,
+            'ymargin': 1,
         }
         size = (7, 7)
-    elif task_name == 'communitytask':
+    elif task_name == 'community':
         custom_pos = {
             # Community A: upper left
             0: (-3.6, 2.2),  # A0, core

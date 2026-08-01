@@ -90,23 +90,23 @@ class InputDrivenHMMTransitions(HMMTransitions):
         """
         return 0.0
 
-    def collect_suff_stats(self,
-                           params: ParameterSet,
-                           posterior: HMMPosterior,
-                           inputs: Optional[Float[Array, "num_timesteps input_dim"]]=None
-    ) -> PyTree:
-        """Collect sufficient statistics for updating the transition distribution parameters.
-
-        Args:
-            params: transition distribution parameters
-            posterior: posterior distribution over latent states
-            inputs: optional inputs
-
-        Returns:
-            PyTree of sufficient statistics for updating the transition distribution
-
-        """
-        return posterior.trans_probs, inputs
+    # def collect_suff_stats(self,
+    #                        params: ParameterSet,
+    #                        posterior: HMMPosterior,
+    #                        inputs: Optional[Float[Array, "num_timesteps input_dim"]]=None
+    # ) -> PyTree:
+    #     """Collect sufficient statistics for updating the transition distribution parameters.
+    #
+    #     Args:
+    #         params: transition distribution parameters
+    #         posterior: posterior distribution over latent states
+    #         inputs: optional inputs
+    #
+    #     Returns:
+    #         PyTree of sufficient statistics for updating the transition distribution
+    #
+    #     """
+    #     return posterior.trans_probs, inputs
 
     def __getstate__(self):
         # Get parent's state first

@@ -38,7 +38,7 @@ class InputDrivenHMMInitialState(HMMInitialState):
     def distribution(self, params: ParamsInputDrivenHMMInitialState, inputs=Float[Array, " input_dim"]) -> tfd.Distribution:
         """Return the distribution object of the initial distribution."""
         # print(params.weights.shape, inputs.shape)
-        logits = params.weights @ inputs[0] + params.biases
+        logits = params.weights @ inputs + params.biases
         return tfd.Categorical(logits=logits)
 
     def initialize(
@@ -62,12 +62,12 @@ class InputDrivenHMMInitialState(HMMInitialState):
         """Compute the log prior of the parameters."""
         return 0.0
 
-    def collect_suff_stats(self,
-                           params: ParameterSet,
-                           posterior: HMMPosterior,
-                           inputs: Optional[Float[Array, "num_timesteps input_dim"]]=None
-                           ) -> Tuple[Float[Array, " num_states"], Optional[Float[Array, " input_dim"]]]:
-        return posterior.smoothed_probs[0], inputs
+    # def collect_suff_stats(self,
+    #                        params: ParameterSet,
+    #                        posterior: HMMPosterior,
+    #                        inputs: Optional[Float[Array, "num_timesteps input_dim"]]=None
+    #                        ) -> Tuple[Float[Array, " num_states"], Optional[Float[Array, " input_dim"]]]:
+    #     return posterior.smoothed_probs[0], inputs
 
     def __getstate__(self):
         # Get parent's state first
