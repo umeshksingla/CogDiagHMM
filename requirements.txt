@@ -1,3 +1,4 @@
 dynamax
-
-
+wonderwords
+matplotlib
+cogdiag

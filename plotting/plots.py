@@ -1,6 +1,6 @@
-import os.path
+from cogdiag.plotting.plots import COLORS, COLORS_REVERSE
 
-from dynamax.utils.plotting import CMAP, COLORS
+import os.path
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -93,6 +93,7 @@ def visualize_task(state_labels, stim_seq, true_states, observations, resp_seq=N
         fig.savefig(fig_path, bbox_inches='tight', dpi=300, transparent=True)
     if display:
         plt.show()
+    plt.close()
     return
 
 
@@ -106,11 +107,13 @@ def visualize_task_neural_activity(state_labels, stim_seq, true_states, observat
     if predicted_observations is not None:
         assert observations.shape[-1] == predicted_observations.shape[-1]
 
-    fig, axes = plt.subplots(observations.shape[-1], 1, figsize=(4.5, 4), sharex=True)
+    n_neurons = min(observations.shape[-1], 5)
+
+    fig, axes = plt.subplots(n_neurons, 1, figsize=(4.5, 4), sharex=True)
 
     STEPS = len(stim_seq) if plot_n_steps is None else plot_n_steps
 
-    for _ in range(observations.shape[-1]):
+    for _ in range(n_neurons):
         axi = axes[_]
         label = 'True Activity'
         axi.plot(range(STEPS), observations[:STEPS, _], '-', label=label, color='gray', alpha=1, linewidth=1)
@@ -129,6 +132,7 @@ def visualize_task_neural_activity(state_labels, stim_seq, true_states, observat
         fig.savefig(fig_path, bbox_inches='tight', dpi=300, transparent=True)
     if display:
         plt.show()
+    plt.close()
     return
 
 
@@ -192,6 +196,7 @@ def visualize_trans_probs(gen_model, inputs, true_states, observations, true_mat
         fig.savefig(os.path.join(fig_dir, 'sample_w_tr.pdf'), bbox_inches='tight', dpi=300, transparent=True)
     if display:
         plt.show()
+    plt.close()
     return
 
 
@@ -283,6 +288,23 @@ def plot_ll(lps, observations, seed, savefig=False, fig_dir=None, display=True):
     plt.tight_layout()
     if savefig:
         plt.savefig(os.path.join(fig_dir, f"ll_seed={seed}.pdf"), transparent=True, bbox_inches='tight')
+    if display:
+        plt.show()
+    plt.close()
+    return
+
+
+def plot_pca(cumulative_variance, pca_threshold, savefig=False, fig_dir=None, display=True):
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker='o', linestyle='-', color='b')
+    plt.axhline(y=pca_threshold, color='r', linestyle='--', label=f'{int(pca_threshold*100)}% Explained Variance threshold')
+    plt.title('Number of Components vs. Cumulative Explained Variance')
+    plt.xlabel('Number of Principal Components')
+    plt.ylabel('Cumulative Explained Variance Ratio')
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.legend(loc='lower right')
+    if savefig:
+        plt.savefig(os.path.join(fig_dir, 'pca_explained_variance.pdf'), dpi=300, bbox_inches='tight', transparent=True)
     if display:
         plt.show()
     plt.close()

@@ -1,8 +1,8 @@
+from cogdiag.plotting.plots import COLORS, COLORS_REVERSE
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-from dynamax.utils.plotting import CMAP, COLORS
 
 
 def plot_misaligned_trajectories(seq_true, seq_hmm, alignment_matrix, plot_n_steps=None, suffix='', savefig=False, fig_dir=None, display=True):

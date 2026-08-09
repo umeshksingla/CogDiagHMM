@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from sklearn.metrics import confusion_matrix, r2_score
-from pprint import pprint
 
 
 def align_hungarian(hmm_decoded_seq, ground_truth_seq):
@@ -46,31 +44,6 @@ def align_hungarian(hmm_decoded_seq, ground_truth_seq):
     # print("\nOriginal HMM Sequence: ", hmm_decoded_seq)
     # print("Remapped HMM Sequence:", remapped_hmm_seq)
     return remapped_hmm_seq, optimal_mapping, cost
-
-
-def calculate_confusion_mtx(hmm_decoded_seq, ground_truth_seq, align=True):
-    true_labels = np.unique(ground_truth_seq)
-    if align:
-        remapped_hmm_seq, optimal_mapping, cost = align_hungarian(hmm_decoded_seq, ground_truth_seq)
-    else:
-        remapped_hmm_seq = hmm_decoded_seq
-        cost = None
-        optimal_mapping = None
-    cm = confusion_matrix(ground_truth_seq, remapped_hmm_seq)
-    # print(f"Confusion Matrix (align={align}):\n", cm)
-    return cm, true_labels, remapped_hmm_seq, optimal_mapping, cost
-
-
-def calc_r2_ahead(model, observations, inputs, kahead=5, probs_type='smoothed'):
-    y_ahead_pred_all, y_ahead_true_all = model.predict_ahead(observations, inputs, kahead=kahead, probs_type=probs_type)
-    train_r2_ahead = {}
-    for k in range(kahead):
-        train_r2_ahead[k] = np.round(r2_score(
-            np.concatenate(y_ahead_true_all[:, :, k, :], axis=0),
-            np.concatenate(y_ahead_pred_all[:, :, k, :], axis=0),
-            multioutput='uniform_average',
-        ), 3)
-    return train_r2_ahead
 
 
 def remap_state_probs(state_probs, true_labels, optimal_mapping):

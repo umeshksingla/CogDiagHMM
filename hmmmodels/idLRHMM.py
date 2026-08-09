@@ -93,6 +93,8 @@ class IDLRHMM(BaseModel):
     def predict_ahead(self, btch_emissions, btch_inputs, kahead=5, probs_type='smoothed'):
         """Soft predictions. 'current+kahead' steps ahead"""
 
+        raise NotImplementedError
+
         W = self.learned_params.emissions.weights  # shape: (K, D, I)
         b = self.learned_params.emissions.biases  # shape: (K, D)
         K = self.hmm.num_states
