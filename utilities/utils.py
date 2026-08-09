@@ -114,3 +114,16 @@ def fit_pca(Y):
     Y_sample = np.array(Y_flat)
     pca = PCA(random_state=42).fit(Y_sample)
     return pca
+
+
+def sanitize_state_machine_dict(state_machine, decimals=1):
+    sanitized = {}
+    for edge, input_probs in state_machine.items():
+        cleaned = [
+            (inp, round(float(prob), decimals))
+            for inp, prob in input_probs
+            if round(float(prob), decimals) > 0
+        ]
+        if cleaned:
+            sanitized[edge] = cleaned
+    return sanitized

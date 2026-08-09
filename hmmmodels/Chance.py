@@ -20,21 +20,19 @@ class Chance(BaseModel):
 
     prefix = 'chance'
 
-    def __init__(self, emission_dim):
+    def __init__(self, emission_dim, task_config=None):
         """
         """
         self.emission_dim = emission_dim
+        self.task_config = task_config
         self.learned_params = None
         self.learned_lps = None
         super().__init__()
 
     def fit(self, emissions, inputs, true_states=None):
         y = np.concatenate(emissions, axis=0)
-        print(y.shape)
         mu = jnp.mean(y, axis=0)
         cov = jnp.cov(y.T)
-        print(mu, mu.shape)
-        print(cov, cov.shape)
         self.model = tfd.MultivariateNormalFullCovariance(loc=mu, covariance_matrix=cov)
         self.learned_params = {'mu': mu, 'cov': cov}
         self.learned_lps = [self.model.log_prob(y).sum()]

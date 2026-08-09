@@ -14,13 +14,14 @@ from dynamax.hidden_markov_model import InputDrivenLinearAutoregressiveHMM
 class IDARHMM(BaseModel):
     prefix = 'idarHMM'
 
-    def __init__(self, num_states, external_input_dim, emission_dim, num_lags=1, seed=0):
+    def __init__(self, num_states, external_input_dim, emission_dim, num_lags=1, seed=0, task_config=None):
         print(f'Initializing ARHMM model (seed={seed})')
         self.seed = seed
         self.num_states = num_states
         self.external_input_dim = external_input_dim
         self.emission_dim = emission_dim
         self.num_lags = num_lags
+        self.task_config = task_config
         self.total_input_dim = self.emission_dim * self.num_lags + self.external_input_dim
         self.hmm = InputDrivenLinearAutoregressiveHMM(self.num_states, self.external_input_dim, self.emission_dim, num_lags=self.num_lags)
         self.learned_params = None

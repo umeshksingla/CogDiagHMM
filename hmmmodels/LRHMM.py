@@ -15,12 +15,13 @@ from dynamax.hidden_markov_model import LinearRegressionHMM
 class LRHMM(BaseModel):
     prefix = 'lrHMM'
 
-    def __init__(self, num_states, input_dim, emission_dim, seed=0):
+    def __init__(self, num_states, input_dim, emission_dim, seed=0, task_config=None):
         print(f'Initializing LRHMM model (seed={seed})')
         self.seed = seed
         self.num_states = num_states
         self.emission_dim = emission_dim
         self.input_dim = input_dim
+        self.task_config = task_config
         self.hmm = LinearRegressionHMM(self.num_states, self.input_dim, self.emission_dim)
         self.learned_params = None
         self.learned_lps = None

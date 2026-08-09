@@ -13,10 +13,11 @@ from dynamax.hidden_markov_model import GaussianHMM
 class GHMM(BaseModel):
     prefix = 'gHMM'
 
-    def __init__(self, num_states, emission_dim, seed=10):
+    def __init__(self, num_states, emission_dim, seed=10, task_config=None):
         self.seed = seed
         self.num_states = num_states
         self.emission_dim = emission_dim
+        self.task_config = task_config
         self.hmm = GaussianHMM(self.num_states, self.emission_dim)
         self.learned_params = None
         self.learned_lps = None

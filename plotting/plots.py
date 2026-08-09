@@ -114,7 +114,7 @@ def visualize_task_neural_activity(state_labels, stim_seq, true_states, observat
     STEPS = len(stim_seq) if plot_n_steps is None else plot_n_steps
 
     for _ in range(n_neurons):
-        axi = axes[_]
+        axi = axes[_] if n_neurons > 1 else axes
         label = 'True Activity'
         axi.plot(range(STEPS), observations[:STEPS, _], '-', label=label, color='gray', alpha=1, linewidth=1)
         # axi.set_ylabel(f'Dim {_+1} (a.u.)')
