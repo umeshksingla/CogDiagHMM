@@ -1,8 +1,9 @@
 from cogdiag.plotting.custom_task_plot_configs import get_plot_config
+from cogdiag.plotting.plots import plot_state_structure
 from cogdiag.utilities.io_utils import load_data
 
-from hmmmodels import IDGHMM, GHMM, DiagGHMM, Chance, ARHMM, IDLRHMM, LRHMM, IDARHMM
-from utilities.utils import reformat_categorical_seqs_hmm, fit_pca, extract_model_data
+from hmmmodels import IDGHMM, GHMM, DiagGHMM, Chance, ARHMM, IDLRHMM, LRHMM, IDARHMM, BaseModel
+from utilities.utils import reformat_categorical_seqs_hmm, fit_pca, extract_model_data, sanitize_state_machine_dict
 from utilities.io_utils import gen_folder_name, save_model_config, save_model_success, load_specific_path
 from plotting.plots import (plot_ll, plot_confusion_mtx, plot_normalized_confusion_mtx, plot_transition_matrix,
                             plot_state_probs, visualize_task_neural_activity, plot_pca)
@@ -67,11 +68,11 @@ def make_plots(model_path, savefig=False, display=True):
     aligned_cm = model_ckp['aligned_cm']
     unaligned_cm = model_ckp['unaligned_cm']
     optimal_mapping = model_ckp['optimal_mapping']
+    inferred_state_machine = model_ckp['inferred_state_machine']
     true_labels = model_ckp['true_labels']
     hmm_n_states = model_config['n_states']
     true_n_states = task_config['n_states']
     remapped_hmm_seq[remapped_hmm_seq < 0] = -1
-
 
     data = extract_model_data(model_path)
     T_true = data['T_true']
@@ -79,6 +80,12 @@ def make_plots(model_path, savefig=False, display=True):
     normalized_pre_alignment_mtx = data['normalized_pre_alignment_mtx']
     normalized_post_alignment_mtx = data['normalized_post_alignment_mtx']
     unaligned_cm= data['unaligned_cm']
+
+    custom_pos, props, size = get_plot_config(task_name)
+    sanitized_state_machine = sanitize_state_machine_dict(inferred_state_machine)
+    plot_state_structure(sanitized_state_machine, custom_pos=custom_pos, props=props, size=size,
+                         node_label_mapping=task_config['state_idx_label'],
+                         task_name=task_name, savefig=savefig, display=display, fig_path=os.path.join(FIG_PATH, f'{task_name}_csm.pdf'))
 
     # --- VISUALIZATIONS ---
     plot_confusion_mtx(unaligned_cm.T, hmm_n_states, true_n_states, suffix='unaligned', savefig=savefig, display=display, fig_dir=FIG_PATH)
@@ -203,18 +210,20 @@ def make_plots(model_path, savefig=False, display=True):
     return
 
 
-def analyze(model, model_path):
+def analyze(model_path):
 
     # Load basic model pkl
     model_ckp_basic = joblib.load(os.path.join(model_path, 'model_ckp_basic.pkl'))
+    model = BaseModel.load(model_ckp_basic['model'])
 
     if model_ckp_basic['prefix'] == 'chance': # Skip predictions etc on the Chance model
         return model_ckp_basic, {}
 
-    # model = model_ckp_basic['model']
     inputs = model_ckp_basic['inputs']
     true_states = model_ckp_basic['true_states']
     observations = model_ckp_basic['pca_observations']
+
+    inferred_state_machine = BaseModel.infer_state_machine(model, model_ckp_basic['stim_onehotmapping'])
 
     predicted_observations_predicted = model.predict_soft(observations, inputs, probs_type='predicted')  # With Inputs
     predicted_observations_smoothed = model.predict_soft(observations, inputs, probs_type='smoothed')  # With Inputs
@@ -262,6 +271,7 @@ def analyze(model, model_path):
         'remapped_hmm_seq': remapped_hmm_seq,
         'alignment_cost': cost,
         'optimal_mapping': optimal_mapping,     # from prev label to new label
+        'inferred_state_machine': inferred_state_machine,
         # 'r2_ahead_scores_smoothed': r2_ahead_scores_smoothed,
         # 'r2_ahead_scores_predicted': r2_ahead_scores_predicted,
         # 'r2_ahead_scores_filtered': r2_ahead_scores_filtered,
@@ -278,7 +288,11 @@ def analyze(model, model_path):
         # 'r2_ahead_scores_filtered': model_ckp['r2_ahead_scores_filtered'],
         'll': model_ckp_basic['ll'],
     }
-    return model_ckp, model_json
+
+    joblib.dump(model_ckp, os.path.join(model_path, "model_ckp.pkl"))
+    with open(os.path.join(model_path, 'model_json.json'), 'w') as f: json.dump(model_json, f, indent=4)
+    print('Saved model at:', model_path)
+    return
 
 
 def preprocess(model_config):
@@ -332,21 +346,21 @@ def execute(model_config, savefig=False, display=False):
 
     # Create a HMM
     if MODEL_NAME == 'IDGHMM':
-        model = IDGHMM(num_states=N_STATES, input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED)
+        model = IDGHMM(num_states=N_STATES, input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'GHMM':
-        model = GHMM(num_states=N_STATES, emission_dim=N_OBS_DIM, seed=SEED)
+        model = GHMM(num_states=N_STATES, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'DiagGHMM':
-        model = DiagGHMM(num_states=N_STATES, emission_dim=N_OBS_DIM, seed=SEED)
+        model = DiagGHMM(num_states=N_STATES, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'LRHMM':
-        model = LRHMM(num_states=N_STATES, input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED)
+        model = LRHMM(num_states=N_STATES, input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'IDLRHMM':
-        model = IDLRHMM(num_states=N_STATES, input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED)
+        model = IDLRHMM(num_states=N_STATES, input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'ARHMM':
-        model = ARHMM(num_states=N_STATES, emission_dim=N_OBS_DIM, seed=SEED)
+        model = ARHMM(num_states=N_STATES, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'IDARHMM':
-        model = IDARHMM(num_states=N_STATES, external_input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED)
+        model = IDARHMM(num_states=N_STATES, external_input_dim=N_INPUTS, emission_dim=N_OBS_DIM, seed=SEED, task_config=task_config)
     elif MODEL_NAME == 'Chance':
-        model = Chance(emission_dim=N_OBS_DIM)
+        model = Chance(emission_dim=N_OBS_DIM, task_config=task_config)
     else:
         raise ValueError(f'Model name "{MODEL_NAME}" not recognized')
     print(model.__class__.__name__)
@@ -366,7 +380,7 @@ def execute(model_config, savefig=False, display=False):
     # ModelClass = type(model)
     model_ckp_basic = {
         # 'model': model if model.prefix not in ['chance'] else '',
-        # 'model': ModelClass,
+        'model': model.save(),
         'prefix': model.prefix,
         'model_config': model_config,
         'task_config': task_config,
@@ -384,10 +398,7 @@ def execute(model_config, savefig=False, display=False):
     }
     joblib.dump(model_ckp_basic, os.path.join(MODEL_PATH, 'model_ckp_basic.pkl'))
     if model.fit_success:
-        model_ckp, model_json = analyze(model, MODEL_PATH)
-        joblib.dump(model_ckp, os.path.join(MODEL_PATH, "model_ckp.pkl"))
-        with open(os.path.join(MODEL_PATH, 'model_json.json'), 'w') as f: json.dump(model_json, f, indent=4)
-        print('Saved model at:', MODEL_PATH)
+        analyze(MODEL_PATH)
         print('Plotting...')
         if savefig or display:
             make_plots(MODEL_PATH, savefig=savefig, display=display)
