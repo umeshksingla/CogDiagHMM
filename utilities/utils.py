@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.decomposition import PCA
+from pprint import pprint
 
 from metrics import calc_transition_matrix, calc_transition_matrix_recovered
 from utilities.io_utils import load_specific_path
@@ -66,29 +67,46 @@ def extract_model_data(model_path):
         }
 
 
-def reformat_stim_resp_seqs_hmm(stim_seqs, resp_seqs, onehotstim=True, onehotresp=True):
-    stim_seqs = stim_seqs - stim_seqs.min()             # stim_seqs need to be mapped from (-1 to x-1) to (0 to x)
-    num_stim_classes = len(np.unique(stim_seqs))
+def encode_onehot_single_seq(seq, is_onehot, num_classes):
+    if not is_onehot:
+        return seq[..., None]       # Add feature dimension: shape becomes (T, 1)
+    I = np.eye(num_classes)
+    onehot = I[seq.astype(int)]     # Create one-hot encoding: shape becomes (T, num_classes)
+    onehot = onehot[..., 1:]        # Remove one dimension to avoid multicollinearity problems
+    return onehot
 
-    num_output_categories = len(np.unique(resp_seqs))   # resp_seqs comes mapped as positive and -1 from rnn code
 
-    print("num_stim_classes", num_stim_classes, np.unique(stim_seqs), "num_output_categories", num_output_categories, np.unique(resp_seqs))
+def reformat_categorical_seqs_hmm(seqs, onehot=True):
 
-    def process_single_seq(seq, is_onehot, num_classes):
-        if not is_onehot:
-            return seq[..., None]                       # Add feature dimension: shape becomes (T, 1)
-        I = np.eye(num_classes)
-        onehot = I[seq.astype(int)]   # Create one-hot encoding: shape becomes (T, num_classes)
-        onehot = onehot[..., 1:]                        # Remove one dimension to avoid multicollinearity problems
-        return onehot
+    # stim_seqs need to be mapped from (-1 to x-1) to (0 to x)
+    # resp_seqs comes mapped as positive and -1 from rnn code
 
-    formatted_inputs = []
-    for stim, resp in zip(stim_seqs, resp_seqs):
-        stim_processed = process_single_seq(stim, onehotstim, num_stim_classes)
-        resp_processed = process_single_seq(resp, onehotresp, num_output_categories)
-        combined = np.concatenate((stim_processed, resp_processed), axis=-1)
-        formatted_inputs.append(combined)
-    return np.array(formatted_inputs)
+    original_classes = np.unique(seqs)
+    num_classes = len(original_classes)
+
+    class_to_idx = {
+        orig: idx for idx, orig in enumerate(original_classes)
+    }
+    mapped_seqs = np.vectorize(class_to_idx.get)(seqs)
+
+    print("num_classes", num_classes, original_classes)
+    formatted_seqs = []
+    for stim in mapped_seqs:
+        stim_processed = encode_onehot_single_seq(stim, onehot, num_classes)
+        formatted_seqs.append(stim_processed)
+
+    # Original stimulus/response -> one hot representation actually passed to HMM
+    onehotmapping_used = {
+        int(orig): encode_onehot_single_seq(
+            np.array([idx]),
+            onehot,
+            num_classes
+        )[0].tolist()
+        for orig, idx in class_to_idx.items()
+    }
+    print("onehotmapping_used:")
+    pprint(onehotmapping_used)
+    return np.array(formatted_seqs), onehotmapping_used
 
 
 def fit_pca(Y):

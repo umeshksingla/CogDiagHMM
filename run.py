@@ -2,7 +2,7 @@ from cogdiag.plotting.custom_task_plot_configs import get_plot_config
 from cogdiag.utilities.io_utils import load_data
 
 from hmmmodels import IDGHMM, GHMM, DiagGHMM, Chance, ARHMM, IDLRHMM, LRHMM, IDARHMM
-from utilities.utils import reformat_stim_resp_seqs_hmm, fit_pca, extract_model_data
+from utilities.utils import reformat_categorical_seqs_hmm, fit_pca, extract_model_data
 from utilities.io_utils import gen_folder_name, save_model_config, save_model_success, load_specific_path
 from plotting.plots import (plot_ll, plot_confusion_mtx, plot_normalized_confusion_mtx, plot_transition_matrix,
                             plot_state_probs, visualize_task_neural_activity, plot_pca)
@@ -46,7 +46,7 @@ def make_plots(model_path, savefig=False, display=True):
     em_lps = model_ckp['em_lps']
     inputs = model_ckp['inputs']
     stim_seqs = model_ckp['stim_seqs']
-    observations = model_ckp['observations']
+    observations = model_ckp['pca_observations']
     true_states = model_ckp['true_states']
     recovered_states = model_ckp['recovered_states']
     state_probs_predicted = model_ckp['state_probs_predicted']
@@ -214,7 +214,7 @@ def analyze(model, model_path):
     # model = model_ckp_basic['model']
     inputs = model_ckp_basic['inputs']
     true_states = model_ckp_basic['true_states']
-    observations = model_ckp_basic['observations']
+    observations = model_ckp_basic['pca_observations']
 
     predicted_observations_predicted = model.predict_soft(observations, inputs, probs_type='predicted')  # With Inputs
     predicted_observations_smoothed = model.predict_soft(observations, inputs, probs_type='smoothed')  # With Inputs
@@ -290,7 +290,9 @@ def preprocess(model_config):
 
     # Get data
     stim_seqs, resp_seqs, true_states, observations, task_config = load_data(DATA_PATH)
-    inputs = reformat_stim_resp_seqs_hmm(stim_seqs, resp_seqs, onehotstim=True)
+    stim_seqs_onehot, stim_onehotmapping = reformat_categorical_seqs_hmm(stim_seqs, onehot=True)
+    resp_seqs_onehot, resp_onehotmapping = reformat_categorical_seqs_hmm(resp_seqs, onehot=True)
+    inputs = np.concatenate([stim_seqs_onehot, resp_seqs_onehot], axis=-1)
     true_states = true_states
     print("inputs", inputs[0, :10])
     print("true_states", true_states[0, :10])
@@ -310,7 +312,7 @@ def preprocess(model_config):
     pca_observations = pca_transformed_observations[:, :latent_dim]
     pca_observations = pca_observations.reshape((n_batches, n_timesteps, -1))
     print("pca_observations", pca_observations.shape)
-    return inputs, stim_seqs, resp_seqs, true_states, observations, pca_observations, task_config, cumulative_variance
+    return inputs, stim_seqs, resp_seqs, true_states, observations, pca_observations, task_config, cumulative_variance, stim_onehotmapping, resp_onehotmapping
 
 
 def execute(model_config, savefig=False, display=False):
@@ -319,7 +321,7 @@ def execute(model_config, savefig=False, display=False):
     SEED = model_config["seed"]
     PATH = model_config["path"]
 
-    inputs, stim_seqs, resp_seqs, true_states, observations, pca_observations, task_config, cumulative_variance = preprocess(model_config)
+    inputs, stim_seqs, resp_seqs, true_states, observations, pca_observations, task_config, cumulative_variance, stim_onehotmapping, resp_onehotmapping = preprocess(model_config)
 
     observations_to_fit = pca_observations
 
@@ -372,10 +374,13 @@ def execute(model_config, savefig=False, display=False):
         'stim_seqs': stim_seqs,
         'resp_seqs': resp_seqs,
         'true_states': true_states,
-        'observations': observations_to_fit,
+        'observations': observations,
+        'pca_observations': pca_observations,
         'learned_params': model.learned_params,
         'em_lps': model.learned_lps,
         'll': model.get_data_logprob(observations_to_fit, inputs),
+        'stim_onehotmapping': stim_onehotmapping,
+        'resp_onehotmapping': resp_onehotmapping,
     }
     joblib.dump(model_ckp_basic, os.path.join(MODEL_PATH, 'model_ckp_basic.pkl'))
     if model.fit_success:
