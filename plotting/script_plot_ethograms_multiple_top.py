@@ -6,7 +6,8 @@ from matplotlib.gridspec import GridSpec
 
 from utilities.io_utils import load_specific_path
 from utilities.utils import extract_model_data, normalize_lp
-from plotting import get_plot_config
+from cogdiag.plotting.custom_task_plot_configs import get_plot_config
+from cogdiag.plotting.plots import plot_state_structure
 from plotting.plots_statesdiag import plot_inferred_structure, plot_ground_truth_structure
 
 
@@ -17,6 +18,7 @@ def get_top_k_models(base_path, models, state_configs, k=2):
     """
     top_models_dict = {}
     ground_truth_matrix = None
+    ground_truth_csm = None
 
     for model_prefix in models:
         all_runs_for_model = []
@@ -33,6 +35,8 @@ def get_top_k_models(base_path, models, state_configs, k=2):
                     # Grab ground truth from the very first valid run we encounter
                     if ground_truth_matrix is None:
                         ground_truth_matrix = data['T_true']
+                    if ground_truth_csm is None:
+                        ground_truth_csm = data['CSM_true']
 
         # Sort runs for this model strictly by log-likelihood (highest first)
         all_runs_for_model.sort(key=lambda x: x['ll'], reverse=True)
@@ -40,7 +44,7 @@ def get_top_k_models(base_path, models, state_configs, k=2):
         # Keep only the top k
         top_models_dict[model_prefix] = all_runs_for_model[:k]
         print(f"SORTED all_runs_for_model {model_prefix}:\n", all_runs_for_model)
-    return ground_truth_matrix, top_models_dict
+    return ground_truth_matrix, ground_truth_csm, top_models_dict
 
 
 def plot_top_structures_grid(T_true, top_models_dict, task, custom_pos=None, props=None, size=(4.2, 4.2), draw='E', savefig=False, display=True, fig_dir=None):
@@ -64,7 +68,8 @@ def plot_top_structures_grid(T_true, top_models_dict, task, custom_pos=None, pro
     ax_gt.set_title(f"Ground Truth ({task})", fontsize=14, fontweight='bold')
 
     if draw == 'E': # ethogram
-        pos_gt, xlim_gt, ylim_gt = plot_ground_truth_structure(T_true, custom_pos=custom_pos, props=props, size=size, ax=ax_gt, display=False)
+        # pos_gt, xlim_gt, ylim_gt = plot_ground_truth_structure(T_true, custom_pos=custom_pos, props=props, size=size, ax=ax_gt, display=False)
+        pos_gt, xlim_gt, ylim_gt = plot_state_structure(T_true, custom_pos=custom_pos, props=props, size=size, ax=ax_gt, display=False)
     elif draw == 'T':   # Transition matrix directly
         ax_gt.imshow(T_true, cmap='Blues')
     ax_gt.axis('off')
@@ -98,7 +103,7 @@ def plot_top_structures_grid(T_true, top_models_dict, task, custom_pos=None, pro
     plt.tight_layout()
     if savefig and fig_dir:
         os.makedirs(fig_dir, exist_ok=True)
-        fig_path = os.path.join(fig_dir, f"{task}_top2_by_ll_structures_{draw}.pdf")
+        fig_path = os.path.join(fig_dir, f"{task}_top2_by_ll_structures_{draw}_checking.pdf")
         plt.savefig(fig_path, dpi=300, bbox_inches='tight', transparent=True)
         print(f"Saved figure to {fig_path}")
 
@@ -113,9 +118,9 @@ if __name__ == "__main__":
     savefig = True
     display = False
 
-    for task, ns in [('hierarchicalcue', [7]), ('countingfinite', [6]), ('ordered', [5]), ('cyclicfwd', [4]), ('nback', [8])]:
+    for task, ns in [('hierarchicalcue', [7]), ('countingfinite', [6]), ('ordered', [5]), ('cyclicfwd', [4]), ('nback', [8])][-2:-1]:
 
-        path = f"models/{task}/CV/"
+        path = f"../models/{task}/CV/"
         state_configs = ns
         assert len(state_configs) == 1      # only for the default number of states
 
@@ -125,7 +130,7 @@ if __name__ == "__main__":
         models_to_evaluate = ['DiagGHMM', 'GHMM', 'IDGHMM', 'LRHMM', 'IDLRHMM', 'IDARHMM'][::-1]
 
         print("Fetching and ranking models by Log-Likelihood...")
-        T_true, top_models_dict = get_top_k_models(
+        T_true, CSM_true, top_models_dict = get_top_k_models(
             base_path=path,
             models=models_to_evaluate,
             state_configs=state_configs,
@@ -140,6 +145,19 @@ if __name__ == "__main__":
 
         print("Generating layout...")
         plot_top_structures_grid(
+            T_true=CSM_true,
+            top_models_dict=top_models_dict,
+            task=task,
+            custom_pos=custom_pos,
+            props=props,
+            size=(size[0], 4),
+            savefig=savefig,
+            display=display,
+            fig_dir=path,
+            draw='E',   # state structures
+        )
+
+        plot_top_structures_grid(
             T_true=T_true,
             top_models_dict=top_models_dict,
             task=task,
@@ -149,26 +167,6 @@ if __name__ == "__main__":
             savefig=savefig,
             display=display,
             fig_dir=path,
-            draw='T',
+            draw='T',   # transition matrices directly
         )
-        plot_top_structures_grid(
-            T_true=T_true,
-            top_models_dict=top_models_dict,
-            task=task,
-            custom_pos=custom_pos,
-            props=props,
-            size=(size[0], 4),
-            savefig=savefig,
-            display=display,
-            fig_dir=path,
-            draw='E',
-        )
-        plot_top_structures_grid(
-            T_true=T_true,
-            top_models_dict=top_models_dict,
-            task=task,
-            savefig=savefig,
-            display=display,
-            fig_dir=path,
-            draw='Ec',
-        )
+

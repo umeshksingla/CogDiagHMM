@@ -152,8 +152,6 @@ def plot_ground_truth_structure(T_true, size=4.2, base_colors=COLORS, custom_pos
     Plots the ground truth transition matrix.
     Returns the positions and axis limits to visually anchor the inferred structures later.
     """
-    props = props or {}
-    node_label_mapping = node_label_mapping or {}
 
     xmargin = props.get('xmargin', 0.1)
     ymargin = props.get('ymargin', 0.1)
@@ -298,7 +296,7 @@ def plot_inferred_structure(T_hmm, alignment_matrix, pos_true, xlim=None, ylim=N
     return
 
 
-def plot_structural_collapse_multiple(T_true, T_hmms=None, alignment_matrices=None, model_prefix=None, titles=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, node_label_mapping={}, task_name='', suffix='', savefig=False, fig_dir=None, display=True):
+def plot_structural_collapse_multiple(T_true, T_hmms=None, alignment_matrices=None, model_prefix=None, titles=None, extended_titles=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, node_label_mapping={}, task_name='', suffix='', savefig=False, fig_dir=None, display=True):
     """
     T_true: (N, N) Ground truth transition matrix
     T_hmms: List of (M, M) HMM inferred transition matrices
@@ -418,14 +416,16 @@ def plot_structural_collapse_multiple(T_true, T_hmms=None, alignment_matrices=No
         ax_hmm.margins(y=ymargin, x=xmargin)
         ax_hmm.set_xlim(true_xlim)
         ax_hmm.set_ylim(true_ylim)
-        ax_hmm.set_title(f"{model_prefix} Fit {idx + 1} ({titles[idx]})")
+        if len(extended_titles):
+            ax_hmm.set_title(f"{model_prefix} Fit {idx + 1}\n({titles[idx]})\n({extended_titles[idx]})")
+        else:
+            ax_hmm.set_title(f"{model_prefix} Fit {idx + 1}\n({titles[idx]})")
 
     plt.tight_layout()
 
     if savefig:
         if fig_dir is None: fig_dir = ''
-        fig.savefig(os.path.join(fig_dir, f'ethograms_combined_{suffix}.pdf'), bbox_inches='tight', dpi=300,
-                    transparent=True)
+        fig.savefig(os.path.join(fig_dir, f'ethograms_combined_{suffix}.pdf'), bbox_inches='tight', dpi=300, transparent=True)
 
     if display:
         plt.show()
