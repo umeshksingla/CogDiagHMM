@@ -1,9 +1,12 @@
-import numpy as np
-from sklearn.decomposition import PCA
-from pprint import pprint
+from cogdiag.domains import TASK_REGISTRY
+from scipy.spatial.distance import num_obs_dm
 
 from metrics import calc_transition_matrix, calc_transition_matrix_recovered
 from utilities.io_utils import load_specific_path
+
+import numpy as np
+from sklearn.decomposition import PCA
+from pprint import pprint
 
 
 def softmax(x):
@@ -21,8 +24,7 @@ def extract_model_data(model_path):
     if not model_ckp or model_ckp.get('prefix') == 'chance':
         return None
 
-    print("model_config", model_ckp['model_config'])
-
+    model_ckp_dirname = model_path.split('/')[-2]
     model_config = model_ckp['model_config']
     task_name = model_config['task']
     task_config = model_ckp['task_config']
@@ -36,6 +38,12 @@ def extract_model_data(model_path):
     optimal_mapping = model_ckp['optimal_mapping']
     hmm_n_states = model_config['n_states']
     true_n_states = task_config['n_states']
+
+    print("model_config", model_config)
+    print("task_config", task_config)
+
+    # csm = TASK_REGISTRY[task_name + 'taskdata'](n_states=task_config['n_states'], n_inputs=task_config['n_inputs'], n_obs_dim=task_config['n_obs_dim']).true_state_machine()
+    csm = TASK_REGISTRY[task_name + 'taskdata'](n_states=task_config['n_states'], n_inputs=1, n_obs_dim=1).true_state_machine()
 
     print("optimal_mapping", optimal_mapping, "hmm_n_states", hmm_n_states, "true_n_states", true_n_states)
 
@@ -55,7 +63,9 @@ def extract_model_data(model_path):
     normalized_post_alignment_mtx = normalized_post_alignment_mtx.T
 
     return {
+            'task_name': task_name,
             'T_true': np.round(T_true, 2),
+            'CSM_true': csm,
             'T_hmm_pre_align': np.round(T_hmm_pre_align, 2),
             'normalized_pre_alignment_mtx': normalized_pre_alignment_mtx,
             'normalized_post_alignment_mtx': normalized_post_alignment_mtx,
@@ -64,6 +74,7 @@ def extract_model_data(model_path):
             'r2': model_ckp['r2_w_inputs_smoothed'],
             'model_prefix': model_config.get('prefix', 'Unknown'),
             'model_path': model_path,
+            'model_ckp_dirname': model_ckp_dirname,
         }
 
 
