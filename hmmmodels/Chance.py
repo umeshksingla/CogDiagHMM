@@ -23,6 +23,9 @@ class Chance(BaseModel):
     def __init__(self, emission_dim, task_config=None):
         """
         """
+        self.seed = None
+        self.input_dim = None
+        self.num_states = None
         self.emission_dim = emission_dim
         self.task_config = task_config
         self.learned_params = None
