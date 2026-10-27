@@ -232,43 +232,6 @@ def visualize_task_neural_activity(observations, predicted_observations_per_vari
     return
 
 
-def visualize_task_neural_activity_zoomed(observations, predicted_observations_per_variant={}, plot_n_steps=50, savefig=False, display=True, fig_path=None):
-    """
-
-    :param observations: true observations
-    :param predicted_observations_per_variant:  a dict of various models' predictions to their id
-    :return:
-    """
-    assert plot_n_steps >= 20
-    n_neurons = 1
-    STEP_RANGE = np.r_[plot_n_steps-15:plot_n_steps-5]
-    for btch in [0, 4, 8, 12, 16]:  # plot any 5 batches
-        fig, axes = plt.subplots(n_neurons, 1, figsize=(3.2, 1), sharex=True)
-        for _ in range(n_neurons):
-            axi = axes[_] if n_neurons > 1 else axes
-
-            # plot true activity
-            axi.plot(STEP_RANGE, observations[btch, STEP_RANGE, _], '-', label='True Activity', color='k', alpha=1, linewidth=2)
-
-            # plot other models' predicted
-            for v in predicted_observations_per_variant:
-                predicted_observations = predicted_observations_per_variant[v][btch]
-                print(observations.shape, predicted_observations.shape)
-                assert observations.shape[-1] == predicted_observations.shape[-1]
-                if predicted_observations is not None:
-                    axi.plot(STEP_RANGE, predicted_observations[STEP_RANGE, _], linestyle='-', label=HMM_VARIANTS[v][0], color=model_colors[v], alpha=1, linewidth=1)
-            axi.axis('off')
-
-        plt.tight_layout()
-        if savefig:
-            fig.savefig(os.path.join(fig_path, f'predicted_activity_timeseries_top_models_zoomed_btch{btch}.pdf'),
-                        bbox_inches='tight', dpi=300, transparent=True)
-        if display:
-            plt.show()
-        plt.close()
-    return
-
-
 def plot_normalized_confusion_mtx(cm, hmm_n_states, true_n_states, size=2, suffix='', savefig=False, fig_dir=None,
                                   display=True):
     fig = plt.figure(figsize=(size + .5, size), constrained_layout=True)
