@@ -32,5 +32,5 @@ def load_specific_path(model_dir):
         print(Warning(f'Unsuccessful model loaded. {model_dir}'))
         return None
 
-    model_ckp = joblib.load(os.path.join(model_dir, 'model_ckp.pkl'))
+    model_ckp = joblib.load(os.path.join(model_dir, 'model_ckp2.pkl'))
     return model_ckp

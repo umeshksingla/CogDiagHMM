@@ -29,7 +29,7 @@ def draw_pie_node(ax, x, y, fractions, colors, radius=0.1, lw=0, ls='-'):
     return
 
 
-def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, node_label_mapping={}, task_name='', suffix='', savefig=False, fig_dir=None, display=True):
+def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2, base_colors=COLORS, custom_pos=None, props={}, node_label_mapping={}, title='', suffix='', savefig=False, fig_dir=None, display=True):
     """
     T_true: (N, N) Ground truth transition matrix
     T_hmm: (M, M) HMM inferred transition matrix
@@ -97,7 +97,8 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2
 
     fig = plt.figure(figsize=size)
     ax_hmm = plt.gca()
-    # ax_hmm.set_title("Inferred HMM Graph")
+    if title:
+        ax_hmm.set_title(title, y=0.85)
 
     # Spatial Anchoring: Place HMM nodes based on their alignment to True nodes
     pos_hmm = {}
@@ -108,8 +109,8 @@ def plot_structural_collapse(T_true, T_hmm=None, alignment_matrix=None, size=4.2
         y = sum(alignment_matrix[i, j] * pos_true[j][1] for j in G_true.nodes())
 
         # Add slight jitter to expose "state splitting" (so redundant states don't perfectly overlap)
-        jitter_x = np.random.uniform(-0.1, 0.1)
-        jitter_y = np.random.uniform(-0.1, 0.1)
+        jitter_x = np.random.uniform(-0.2, 0.2)
+        jitter_y = np.random.uniform(-0.2, 0.2)
         pos_hmm[i] = np.array([x + jitter_x, y + jitter_y])
 
     # Draw inferred edges (Spiderweb/Hairball effect)
@@ -446,24 +447,46 @@ if __name__ == '__main__':
         [1.0, 0.0, 0.0, 0.0]
     ])
 
-    # 2. HMM Recovered (4 states)
-    # Demonstrating failure despite having the correct number of K states:
-    # - H0 and H1 both map to T0 (Splitting, soaking up noise)
-    # - H2 maps to a confused mix of T1 and T2 (Merging, failing to track the sequence)
-    # - H3 cleanly maps to T3
-    T_hmm = np.array([
-        [0.2, 0.1, 0.7, 0.0],  # H0 (Split of T0) transitions mostly to H2
-        [0.1, 0.1, 0.8, 0.0],  # H1 (Split of T0) transitions mostly to H2
-        [0.0, 0.0, 0.4, 0.6],  # H2 (Merged T1/T2) loops to itself, then bleeds into H3
-        [0.5, 0.5, 0.0, 0.0]   # H3 (Clean T3) transitions back to the H0/H1 splits
+    T_true = np.array([
+        [0.5, 0.5],
+        [0.5, 0.5],
     ])
 
-    # 3. Alignment Matrix (Rows = HMM states, Cols = True states)
-    alignment = np.array([
-        [1.0, 0.0, 0.0, 0.0],  # H0 is 100% T0
-        [1.0, 0.0, 0.0, 0.0],  # H1 is 100% T0
-        [0.0, 0.6, 0.4, 0.0],  # H2 is a 60/40 mix of T1 and T2
-        [0.0, 0.0, 0.0, 1.0],  # H3 is 100% T3
-    ])
+    from cogdiag.plotting.custom_task_plot_configs import get_plot_config
 
-    plot_structural_collapse(T_true, T_hmm, alignment)
+    task_name = 'parity'
+    custom_pos, props, size = get_plot_config(task_name)
+    plot_structural_collapse(T_true, None, None, custom_pos=custom_pos, props=props, size=size, savefig=True, display=False, suffix=task_name, fig_dir=os.path.join('../../CogDiag/figures'))
+
+    task_name = 'parity_3'
+    T_true = np.array([
+        [0.0, 0.5, 0.5],
+        [0.5, 0.0, 0.5],
+        [0.5, 0.0, 0.5],
+    ])
+    custom_pos, props, size = get_plot_config(task_name)
+    plot_structural_collapse(T_true, None, None, custom_pos=custom_pos, props=props, size=size, savefig=True, display=False, suffix=task_name, fig_dir=os.path.join('../../CogDiag/figures'))
+
+    task_name = 'parity_4'
+    T_true = np.array([
+        [0.0, 0.5, 0.5, 0.0],   # E1
+        [0.5, 0.0, 0.0, 0.5],   # E2
+        [0.5, 0.0, 0.0, 0.5],   # O1
+        [0.0, 0.5, 0.5, 0.0],   # O2
+    ])
+    custom_pos, props, size = get_plot_config(task_name)
+    plot_structural_collapse(T_true, None, None, custom_pos=custom_pos, props=props, size=size, savefig=True, display=False, suffix=task_name, fig_dir=os.path.join('../../CogDiag/figures'))
+
+    task_name = 'parity_6'
+    T_true = np.array([
+        [0.0, 0.5, 0.0, 0.0, 0.5, 0.0],  # E1
+        [0.0, 0.0, 0.5, 0.0, 0.0, 0.5],  # E2
+        [0.5, 0.0, 0.0, 0.5, 0.0, 0.0],  # E3
+
+        [0.0, 0.5, 0.0, 0.0, 0.5, 0.0],  # O1
+        [0.0, 0.0, 0.5, 0.0, 0.0, 0.5],  # O2
+        [0.5, 0.0, 0.0, 0.5, 0.0, 0.0],  # O3
+    ])
+    custom_pos, props, size = get_plot_config(task_name)
+    plot_structural_collapse(T_true, None, None, custom_pos=custom_pos, props=props, size=size, savefig=True, display=False, suffix=task_name, fig_dir=os.path.join('../../CogDiag/figures'))
+
