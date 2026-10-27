@@ -234,10 +234,10 @@ if __name__ == '__main__':
              ('ordered', [5], 'ordered'),
              ]
 
-    plot_model_legend(brief=True, savefig=True, display=False, fig_dir='models')
+    plot_model_legend(brief=True, savefig=True, display=False, fig_dir='../models')
 
-    plot_scorematrix_all_tasks_all_hmms(tasks, score_type='r2', title='Neural reconstruction', fig_path='models/r2_matrix_all_tasks_all_hmms.pdf', display=display, savefig=savefig)
-    plot_scorematrix_all_tasks_all_hmms(tasks, score_type='recovery', title='State recovery', fig_path='models/recovery_matrix_all_tasks_all_hmms.pdf', display=display, savefig=savefig)
+    plot_scorematrix_all_tasks_all_hmms(tasks, score_type='r2', title='Neural reconstruction', fig_path='../models/r2_matrix_all_tasks_all_hmms.pdf', display=display, savefig=savefig)
+    plot_scorematrix_all_tasks_all_hmms(tasks, score_type='recovery', title='State recovery', fig_path='../models/recovery_matrix_all_tasks_all_hmms.pdf', display=display, savefig=savefig)
 
     use_prev = True
     for task, num_states, _ in tasks:

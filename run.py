@@ -7,11 +7,10 @@ from utilities.utils import reformat_categorical_seqs_hmm, fit_pca, extract_mode
 from utilities.io_utils import gen_folder_name, save_model_config, save_model_success, load_specific_path
 from plotting.plots import (plot_ll, plot_confusion_mtx, plot_normalized_confusion_mtx, plot_transition_matrix,
                             plot_state_probs, visualize_task, visualize_task_neural_activity, plot_pca, plot_colorbar)
-from plotting.plots_statesdiag import plot_structural_collapse
-from plotting.plots_statestraj import plot_misaligned_trajectories
+from plotting.plot_ethogram import plot_structural_collapse
+from plotting.plot_statesequen import plot_misaligned_trajectories
 from plotting.plot_hmm_partitions import hmm_partitions
-from metrics import calculate_confusion_mtx
-from alignment import remap_state_probs
+from utilities.utils import calculate_confusion_mtx, remap_state_probs
 
 import os
 import json
@@ -20,7 +19,6 @@ from pprint import pprint
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 pca_threshold = 0.98
 
